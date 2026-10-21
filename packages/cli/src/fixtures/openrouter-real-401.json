@@ -1,0 +1,16 @@
+{
+  "authenticated": false,
+  "status": 401,
+  "body": {
+    "error": {
+      "message": "No cookie auth credentials found",
+      "code": 401
+    }
+  },
+  "headers": {
+    "Content-Type": [
+      "application/json"
+    ]
+  },
+  "capturedAt": "2026-10-21T08:22:42.7678455Z"
+}

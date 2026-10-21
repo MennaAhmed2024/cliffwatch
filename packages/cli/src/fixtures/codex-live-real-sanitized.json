@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-21T08:28:13.825Z",
+  "result": {
+    "rateLimitsByLimitId": {
+      "codex": {
+        "limitId": "codex",
+        "primary": {
+          "usedPercent": 57,
+          "windowDurationMins": 300,
+          "resetsAt": 1792599777
+        },
+        "secondary": {
+          "usedPercent": 22,
+          "windowDurationMins": 10080,
+          "resetsAt": 1793129740
+        }
+      }
+    }
+  }
+}

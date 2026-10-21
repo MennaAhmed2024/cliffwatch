@@ -1,0 +1,92 @@
+[
+  {
+    "timestamp": "2026-10-16T12:38:18.726Z",
+    "type": "event_msg",
+    "payload": {
+      "type": "token_count",
+      "rate_limits": {
+        "limit_id": "codex",
+        "limit_name": null,
+        "primary": {
+          "used_percent": 39.0,
+          "window_minutes": 300,
+          "resets_at": 1792171408
+        },
+        "secondary": {
+          "used_percent": 22.0,
+          "window_minutes": 10080,
+          "resets_at": 1792694539
+        },
+        "credits": {
+          "has_credits": false,
+          "unlimited": false,
+          "balance": "0"
+        },
+        "individual_limit": null,
+        "spend_control_reached": null,
+        "plan_type": "plus",
+        "rate_limit_reached_type": null
+      }
+    }
+  },
+  {
+    "timestamp": "2026-10-16T12:38:26.247Z",
+    "type": "event_msg",
+    "payload": {
+      "type": "token_count",
+      "rate_limits": {
+        "limit_id": "codex",
+        "limit_name": null,
+        "primary": {
+          "used_percent": 40.0,
+          "window_minutes": 300,
+          "resets_at": 1792171408
+        },
+        "secondary": {
+          "used_percent": 22.0,
+          "window_minutes": 10080,
+          "resets_at": 1792694539
+        },
+        "credits": {
+          "has_credits": false,
+          "unlimited": false,
+          "balance": "0"
+        },
+        "individual_limit": null,
+        "spend_control_reached": null,
+        "plan_type": "plus",
+        "rate_limit_reached_type": null
+      }
+    }
+  },
+  {
+    "timestamp": "2026-10-16T12:39:02.805Z",
+    "type": "event_msg",
+    "payload": {
+      "type": "token_count",
+      "rate_limits": {
+        "limit_id": "codex",
+        "limit_name": null,
+        "primary": {
+          "used_percent": 41.0,
+          "window_minutes": 300,
+          "resets_at": 1792171408
+        },
+        "secondary": {
+          "used_percent": 22.0,
+          "window_minutes": 10080,
+          "resets_at": 1792694539
+        },
+        "credits": {
+          "has_credits": false,
+          "unlimited": false,
+          "balance": "0"
+        },
+        "individual_limit": null,
+        "spend_control_reached": null,
+        "plan_type": "plus",
+        "rate_limit_reached_type": null
+      }
+    }
+  }
+]
