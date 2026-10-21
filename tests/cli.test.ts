@@ -37,3 +37,13 @@ it('notification failure stays visible; unsafe URL rejected', async () => {
   await expect(testAlert(config, { ALERT_URL: 'http://example.com/secret' })).rejects.toThrow('HTTPS');
   await expect(testAlert(config, { ALERT_URL: 'https://example.com/secret' }, async () => new Response('', { status: 500 }))).rejects.toThrow('delivery failed');
 });
+it('daemon --once creates a private store and history stays honest when no provider is enabled', async () => {
+  const dir = await mkdtemp(join(tmpdir(),'quotadog-daemon-cli-'));
+  try {
+    const db = join(dir,'samples.sqlite'), config = join(dir,'config.yaml');
+    await writeFile(config,JSON.stringify({dataFile:db,providers:{codex:{enabled:false},openrouter:{enabled:false}}}));
+    await exec(process.execPath,[resolve('packages/cli/dist/cli.js'),'daemon','--once','--config',config]);
+    const history = await exec(process.execPath,[resolve('packages/cli/dist/cli.js'),'history','--config',config]);
+    expect(history.stdout).toContain('No samples yet');
+  } finally { await rm(dir,{recursive:true,force:true}); }
+});

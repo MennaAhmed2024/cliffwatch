@@ -1,5 +1,23 @@
 {
-  "name": "quotadog", "version": "0.1.0", "description": "Local-first AI quota watchdog", "type": "module", "license": "MIT",
-  "engines": {"node": ">=20"}, "bin": {"quotadog": "dist/cli.js"}, "exports": "./dist/core/probe.js", "files": ["dist", "README.md"],
-  "dependencies": {"yaml": "^2.8.1", "zod": "^3.25.76"}
+  "name": "quotadog",
+  "version": "0.1.0",
+  "description": "Local-first AI quota watchdog",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "quotadog": "dist/cli.js"
+  },
+  "exports": "./dist/core/probe.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "yaml": "^2.8.1",
+    "zod": "^3.25.76"
+  }
 }

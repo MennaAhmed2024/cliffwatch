@@ -8,12 +8,19 @@ const envName = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
 const schema = z.object({
   intervalSeconds: z.number().int().min(1).max(86400).default(300),
   timeoutMs: z.number().int().min(100).max(60000).default(10000),
+  dataFile: z.string().min(1).optional(),
   thresholds: z.array(z.number().min(0).max(100)).nonempty().default([70, 85, 95]),
   providers: z.object({
     codex: z.object({ enabled: z.boolean().default(true), source: z.enum(['live', 'file']).default('live'), command: z.string().min(1).default('codex'), file: z.string().optional() }).strict().default({}),
     openrouter: z.object({ enabled: z.boolean().default(true), keyEnv: envName.default('OPENROUTER_API_KEY'), scope: z.enum(['key', 'account']).default('key') }).strict().default({}),
   }).strict().default({}),
-  channels: z.array(z.object({ type: z.literal('webhook'), urlEnv: envName }).strict()).default([]),
+  channels: z.array(z.discriminatedUnion('type', [
+    z.object({ type: z.literal('webhook'), urlEnv: envName }).strict(),
+    z.object({ type: z.literal('discord'), urlEnv: envName }).strict(),
+    z.object({ type: z.literal('ntfy'), urlEnv: envName }).strict(),
+    z.object({ type: z.literal('telegram'), botTokenEnv: envName, chatIdEnv: envName }).strict(),
+    z.object({ type: z.literal('desktop') }).strict(),
+  ])).default([]),
 }).strict();
 export type Config = z.infer<typeof schema>;
 export function parseConfig(text: string): Config {

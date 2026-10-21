@@ -1,9 +1,9 @@
-# QuotaDog CLI — M1
+# QuotaDog CLI — M2
 
-Commands: `quotadog status [--json] [--config PATH]` and `quotadog test-alert [--config PATH]`.
+Commands: `quotadog status [--json] [--config PATH]`, `quotadog daemon [--once] [--config PATH]`, `quotadog history [provider] [--json] [--config PATH]`, and `quotadog test-alert [--config PATH]`.
 
 Node 20+ runtime. Codex live mode requires the signed-in Codex executable on PATH (or a configured executable path). OpenRouter reads OPENROUTER_API_KEY by default. Missing credentials produce UNKNOWN; monitoring does not require paid inference.
 
-Default configuration is optional at ~/.quotadog/config.yaml. A webhook needs channels with type: webhook and urlEnv naming its URL environment variable. test-alert sends one real JSON POST to the first channel. Only HTTPS is allowed except numeric loopback HTTP for local testing. No retries/fallback until M2.
+Default configuration is optional at ~/.quotadog/config.yaml. Channels can be webhook, ntfy, Telegram, Discord or desktop. Secrets are environment variable references. test-alert sends one real message to the first channel. Only HTTPS is allowed except numeric loopback HTTP for local testing. Daemon alerts retry and move to fallback channels in configuration order.
 
-No daemon, database, history or dashboard yet. Pacing is unknown in status until historical storage arrives. No telemetry. Provider polling and configured webhook delivery use the network; credentials are sent only to their intended endpoint. Account credit status does not describe all provider budget/rate limits.
+SQLite stores samples, health, heartbeat and an alert outbox. Pacing remains unknown until enough observed history exists. Dashboard arrives in M3. No telemetry. Provider polling and configured remote alert delivery use the network; credentials are sent only to their intended endpoint. Account credit status does not describe all provider budget/rate limits.

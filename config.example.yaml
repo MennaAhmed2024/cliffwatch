@@ -1,6 +1,7 @@
 # Save as ~/.quotadog/config.yaml; secret VALUES belong in environment variables.
 intervalSeconds: 300
 timeoutMs: 10000
+# Optional: dataFile: /absolute/path/to/quotadog.sqlite
 thresholds: [70, 85, 95]
 providers:
   codex:
@@ -14,3 +15,12 @@ providers:
 channels:
   - type: webhook
     urlEnv: QUOTADOG_WEBHOOK_URL
+  # Optional fallbacks, tried in listed order after two failed attempts:
+  # - type: ntfy
+  #   urlEnv: QUOTADOG_NTFY_URL
+  # - type: telegram
+  #   botTokenEnv: QUOTADOG_TELEGRAM_TOKEN
+  #   chatIdEnv: QUOTADOG_TELEGRAM_CHAT_ID
+  # - type: discord
+  #   urlEnv: QUOTADOG_DISCORD_URL
+  # - type: desktop
