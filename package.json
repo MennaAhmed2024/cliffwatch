@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p apps/dashboard/tsconfig.json",
     "pretest": "npm run build",
     "test": "vitest run",
+    "verify:package": "node scripts/verify-packed.mjs",
     "lint": "eslint .",
     "status": "node packages/cli/dist/cli.js status"
   },

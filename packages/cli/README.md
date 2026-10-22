@@ -1,9 +1,9 @@
-# QuotaDog CLI — M2
+# QuotaDog
 
-Commands: `quotadog status [--json] [--config PATH]`, `quotadog daemon [--once] [--config PATH]`, `quotadog history [provider] [--json] [--config PATH]`, and `quotadog test-alert [--config PATH]`.
+Local-first quota status, pacing, alerts and a loopback-only dashboard for Codex CLI and OpenRouter.
 
-Node 20+ runtime. Codex live mode requires the signed-in Codex executable on PATH (or a configured executable path). OpenRouter reads OPENROUTER_API_KEY by default. Missing credentials produce UNKNOWN; monitoring does not require paid inference.
+After publication, run `npx quotadog status`. The package is currently a local release candidate and is not yet published to npm. Commands: `status`, `daemon`, `history`, `test-alert`, `dashboard`; each accepts `--config PATH`. Configuration defaults to `~/.quotadog/config.yaml`, with secrets referenced by environment variable name. The dashboard requires Node 20.9+ and listens on `127.0.0.1`.
 
-Default configuration is optional at ~/.quotadog/config.yaml. Channels can be webhook, ntfy, Telegram, Discord or desktop. Secrets are environment variable references. test-alert sends one real message to the first channel. Only HTTPS is allowed except numeric loopback HTTP for local testing. Daemon alerts retry and move to fallback channels in configuration order.
+No telemetry or provider-account mutations. Missing or stale quota data is reported as `UNKNOWN`.
 
-SQLite stores samples, health, heartbeat and an alert outbox. Pacing remains unknown until enough observed history exists. Dashboard arrives in M3. No telemetry. Provider polling and configured remote alert delivery use the network; credentials are sent only to their intended endpoint. Account credit status does not describe all provider budget/rate limits.
+MIT licensed. See the repository's full README and adapter documentation before interpreting provider limits.

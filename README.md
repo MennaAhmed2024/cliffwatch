@@ -1,51 +1,76 @@
 # QuotaDog
 
-A local-first quota watchdog for AI coding tools: status, persistent pacing and threshold alerts.
+QuotaDog is a local-first quota watchdog for AI coding tools. A status scanner tells you where usage is now; QuotaDog also estimates when the remaining quota may run out and sends threshold alerts before that point. It currently monitors Codex CLI and OpenRouter, with a terminal interface, a background daemon and a local dashboard.
 
-**Current state: M3 CLI, daemon, and local dashboard. Runnable locally; not published to npm.**
+**Release state:** v0.1.0 is a tested local release candidate. It has not been published to npm. Public `npx quotadog status` will work only after publication; this README does not claim a live registry release.
 
-## Run
+## Run from source
 
-From this directory, with Node 22.13+ for development tooling (CLI runtime supports Node 20+; dashboard requires Node 20.9+):
+Development requires Node 22.13+ and npm. The distributed CLI supports Node 20+; the dashboard needs Node 20.9+.
 
 ```sh
 npm ci
-npm run build
-npm exec --workspace=quotadog -- quotadog status
-npm exec --workspace=quotadog -- quotadog status --json
-npm exec --workspace=quotadog -- quotadog daemon
-npm exec --workspace=quotadog -- quotadog history codex
 npm run build:dashboard
+npm exec --workspace=quotadog -- quotadog status
+npm exec --workspace=quotadog -- quotadog daemon
 npm exec --workspace=quotadog -- quotadog dashboard
 ```
 
-Codex must be installed and signed in. Missing configuration uses defaults; missing provider credentials or suspect data display UNKNOWN and status exits 0. Invalid config/arguments and failed test-alert exit 1. Copy config.example.yaml to ~/.quotadog/config.yaml to customize. Keys and webhook URLs are environment-variable references, never literal secrets in YAML. Windows command must point to an executable, not a .cmd shell wrapper.
+The dashboard opens at `http://127.0.0.1:3000` by default. For UI development, run `npm run build` and then `npm run dev`. To install the unreleased npm package locally, run `npm pack --workspace quotadog` and install the resulting tarball in a clean project. CI verifies that tarball on Windows and Linux with Node 20.
 
-```sh
-npm exec --workspace=quotadog -- quotadog test-alert
-npm test
-npm run typecheck
-npm run lint
+Codex must be installed and signed in for its live probe. OpenRouter needs an API key in the environment. Missing configuration uses defaults; unavailable credentials or suspect data produce `UNKNOWN`, not a guessed percentage. `status` exits 0 for unknown provider data. Invalid config, invalid arguments and a failed `test-alert` exit nonzero.
+
+## Configuration
+
+Copy [config.example.yaml](config.example.yaml) to `~/.quotadog/config.yaml`. Store secret **values** in environment variables; YAML contains only variable names. The default database is `~/.quotadog/quotadog.sqlite`. A relative `dataFile` is resolved beside the config file, so the daemon and dashboard read the same database.
+
+```yaml
+intervalSeconds: 300
+dashboardPort: 3000
+thresholds: [70, 85, 95]
+providers:
+  codex:
+    enabled: true
+    source: live
+  openrouter:
+    enabled: true
+    keyEnv: OPENROUTER_API_KEY
+channels:
+  - type: desktop
 ```
 
-test-alert sends a real notification to the first configured channel. Supported free channels: generic webhook, ntfy, Telegram, Discord and desktop notification. No external destination was configured during development; webhook delivery is verified against a real local HTTP receiver. The daemon polls every five minutes by default, stores samples in SQLite, persists pending/delivered alerts, retries failures with bounded backoff and moves to the next channel after two failed attempts. Use `daemon --once` for one polling cycle.
+For another free alert destination, configure an ntfy topic URL, Telegram bot, Discord webhook or generic webhook as shown in the example. `quotadog test-alert` sends a **real** message to the first configured channel. The daemon retries failed delivery with backoff and then tries fallback channels in order. A crash after an external service accepts a message but before SQLite records success can produce a duplicate; webhook consumers should be idempotent.
 
-The dashboard binds only `127.0.0.1` on `dashboardPort` (default `3000`) and reads the same SQLite file and config as the CLI. `quotadog dashboard --config PATH` forwards that config to the dashboard. A relative `dataFile` resolves beside the config file so both processes use the same database. During UI development, run `npm run build` first, then `npm run dev`; it also binds loopback. The overview refreshes every 30 seconds, while history and settings render on navigation. Settings never returns environment variable values; its test-alert button sends one real notification when clicked. No dashboard auth is included for this single-user local version. Build the standalone dashboard before packing the CLI; `npm run build:dashboard` does this and copies assets into the npm package. The package is larger because it includes a Next.js runtime.
+Available commands are `status [--json]`, `daemon [--once]`, `history [provider] [--json]`, `test-alert` and `dashboard`. Each accepts `--config PATH`. Use `daemon --once` for a single poll. The dashboard shows Overview, seven-day History and read-only Settings. It binds to `127.0.0.1`, rejects other Host values, and requires a same-origin request before sending a test alert. Dashboard settings never expose environment variable values.
 
-The UI uses Lenis for optional smooth scrolling and GSAP for short entrance transitions, both disabled under reduced-motion settings. React Bits was requested, but its current source license restricts redistributing components in an open-source repository. The dashboard uses an original, restrained spotlight hover component instead. See [React Bits license](https://github.com/DavidHDev/react-bits/blob/main/LICENSE.md).
+![Dashboard overview with synthetic sample data](docs/screenshots/m3-overview-fixture.png)
 
-## Honest status
+The screenshot uses a **synthetic** 42.5% sample; it is not a live provider reading. The UI uses Lenis and GSAP for optional motion and honors reduced-motion settings. React Bits was requested but its current license restricts redistribution of component source in an open-source repository, so this project uses an original hover effect instead. See [the React Bits license](https://github.com/DavidHDev/react-bits/blob/main/LICENSE.md).
 
-No telemetry, no inference calls, no provider-account mutations. Configured provider reads and opt-in webhooks use the network. Status reports only the labeled quota scope. OpenRouter credit does not imply every request budget is healthy. Current success contracts for OpenRouter use synthetic tests and remain UNVERIFIED against authenticated service responses.
+## How the ETA is calculated
 
-Pacing calculates a 7-day burn and a last-6h burn from persisted samples. It reports the ETA each produces and identifies the faster one. It requires at least 80% observed coverage of each horizon; sparse history stays unknown. Weekly status also shows today's UTC burn against the remaining daily allowance when coverage is sufficient. Codex uses provider resets but rejects expired or longer-than-window timing as suspect. File mode retains original event timestamps; historical data cannot become fresh through rereading.
+Suppose a quota window is **64% used**, leaving **36 percentage points**. If observed usage rose at **0.75 points/hour** across seven days, the seven-day ETA is `36 ÷ 0.75 = 48 hours`. If the last six hours rose at **2 points/hour**, the spike ETA is `36 ÷ 2 = 18 hours`. QuotaDog shows both and labels the six-hour estimate as the warning driver. If the quota resets in 24 hours, that spike would exhaust the remaining amount before reset.
 
-Samples and alert state live at `~/.quotadog/quotadog.sqlite` unless `dataFile` overrides it. The daemon logs a warning at startup when the previous heartbeat is older than two intervals. SQLite uniqueness suppresses repeat threshold alerts within a reset period; a new credit refill/top-up starts a new period. External delivery is at least once: a crash after an external channel accepts a message but before SQLite marks it delivered can cause a duplicate. Keep webhook consumers idempotent where possible.
+These are projections from observed samples, not provider guarantees. Each horizon needs at least 80% coverage from valid adjacent observations within two poll intervals. Sparse history, counter resets and stale observations produce an unknown ETA instead of a precise-looking number. Weekly pacing compares today's UTC burn with remaining quota divided by days until reset; it does not treat `100 / days` as a safe remaining allowance after part of the quota is used.
 
-For a local Codex JSONL file, set providers.codex.source to file and providers.codex.file to its path. The conservative parser rejects incomplete lines and files over 8 MiB. Live mode is the default; no automatic scan or silent fallback conceals a live-source failure.
+## Privacy and correctness
 
-The project has no configured remote issue tracker yet, so UNKNOWN points to local adapter documentation rather than a fabricated issue URL. Public `npx quotadog status` is not a release claim; publishing and registry-name checks belong to M4.
+There is no telemetry, hosted account, paid API, inference call or provider-account mutation. Configured provider reads and opt-in notification delivery are the only network operations. Keys stay in local environment variables and are transmitted only to their intended provider or alert destination. The dashboard listens on IPv4 loopback only.
 
-See [M0 report](M0-REPORT.md), [M3 report](M3-REPORT.md), [Codex findings](docs/adapters/codex.md), [OpenRouter findings](docs/adapters/openrouter.md) and [decisions](DECISIONS.md).
+The daemon records samples, health and alert state in SQLite. It warns at startup if the previous heartbeat is older than two probe intervals. The dashboard marks missing data, stale health or samples, expired resets and read failures `UNKNOWN` and hides the old percentage. The CLI follows the same fail-closed rule. Alerts fire on threshold crossings and use a unique key per provider/window/threshold/reset period to avoid repeated delivery during one period.
 
-Real sanitized fixtures are under packages/cli/src/fixtures. Codex samples are historical; OpenRouter contains an actual authentication failure, not an authenticated success.
+Quota scope matters: OpenRouter key credit does not prove every request budget is healthy. Codex live quota timing can be inconsistent; the adapter rejects suspect resets rather than claiming health. File-mode Codex input preserves source timestamps and cannot become fresh just because it was reread. See [Codex adapter findings](docs/adapters/codex.md) and [OpenRouter adapter findings](docs/adapters/openrouter.md) for evidence and UNVERIFIED assumptions.
+
+## Verify and release
+
+```sh
+npm run build:dashboard
+npm run typecheck
+npm run lint
+npm test
+npm run verify:package
+```
+
+The [CI workflow](.github/workflows/ci.yml) runs those checks on Windows and Linux and tests the packed package under Node 20. [RELEASING.md](RELEASING.md) records the npm version and publication steps. This repository has no configured remote issue tracker yet; `UNKNOWN` points to local adapter documentation instead of a fabricated URL.
+
+Read the [M4 report](M4-REPORT.md), [architecture decisions](DECISIONS.md) and [MIT license](LICENSE) for the release status and accepted trade-offs.
