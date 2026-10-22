@@ -2,11 +2,11 @@
 
 A local-first quota watchdog for AI coding tools: status, persistent pacing and threshold alerts.
 
-**Current state: M2 CLI and daemon. Runnable locally; not published to npm.**
+**Current state: M3 CLI, daemon, and local dashboard. Runnable locally; not published to npm.**
 
 ## Run
 
-From this directory, with Node 22.13+ for development tooling (CLI runtime supports Node 20+):
+From this directory, with Node 22.13+ for development tooling (CLI runtime supports Node 20+; dashboard requires Node 20.9+):
 
 ```sh
 npm ci
@@ -15,6 +15,8 @@ npm exec --workspace=quotadog -- quotadog status
 npm exec --workspace=quotadog -- quotadog status --json
 npm exec --workspace=quotadog -- quotadog daemon
 npm exec --workspace=quotadog -- quotadog history codex
+npm run build:dashboard
+npm exec --workspace=quotadog -- quotadog dashboard
 ```
 
 Codex must be installed and signed in. Missing configuration uses defaults; missing provider credentials or suspect data display UNKNOWN and status exits 0. Invalid config/arguments and failed test-alert exit 1. Copy config.example.yaml to ~/.quotadog/config.yaml to customize. Keys and webhook URLs are environment-variable references, never literal secrets in YAML. Windows command must point to an executable, not a .cmd shell wrapper.
@@ -26,7 +28,11 @@ npm run typecheck
 npm run lint
 ```
 
-test-alert sends a real notification to the first configured channel. Supported free channels: generic webhook, ntfy, Telegram, Discord and desktop notification. No external destination was configured during development; webhook delivery is verified against a real local HTTP receiver. The daemon polls every five minutes by default, stores samples in SQLite, persists pending/delivered alerts, retries failures with bounded backoff and moves to the next channel after two failed attempts. Use `daemon --once` for one polling cycle. The dashboard arrives in M3.
+test-alert sends a real notification to the first configured channel. Supported free channels: generic webhook, ntfy, Telegram, Discord and desktop notification. No external destination was configured during development; webhook delivery is verified against a real local HTTP receiver. The daemon polls every five minutes by default, stores samples in SQLite, persists pending/delivered alerts, retries failures with bounded backoff and moves to the next channel after two failed attempts. Use `daemon --once` for one polling cycle.
+
+The dashboard binds only `127.0.0.1` on `dashboardPort` (default `3000`) and reads the same SQLite file and config as the CLI. `quotadog dashboard --config PATH` forwards that config to the dashboard. A relative `dataFile` resolves beside the config file so both processes use the same database. During UI development, run `npm run build` first, then `npm run dev`; it also binds loopback. The overview refreshes every 30 seconds, while history and settings render on navigation. Settings never returns environment variable values; its test-alert button sends one real notification when clicked. No dashboard auth is included for this single-user local version. Build the standalone dashboard before packing the CLI; `npm run build:dashboard` does this and copies assets into the npm package. The package is larger because it includes a Next.js runtime.
+
+The UI uses Lenis for optional smooth scrolling and GSAP for short entrance transitions, both disabled under reduced-motion settings. React Bits was requested, but its current source license restricts redistributing components in an open-source repository. The dashboard uses an original, restrained spotlight hover component instead. See [React Bits license](https://github.com/DavidHDev/react-bits/blob/main/LICENSE.md).
 
 ## Honest status
 
@@ -40,6 +46,6 @@ For a local Codex JSONL file, set providers.codex.source to file and providers.c
 
 The project has no configured remote issue tracker yet, so UNKNOWN points to local adapter documentation rather than a fabricated issue URL. Public `npx quotadog status` is not a release claim; publishing and registry-name checks belong to M4.
 
-See [M0 report](M0-REPORT.md), [Codex findings](docs/adapters/codex.md), [OpenRouter findings](docs/adapters/openrouter.md) and [decisions](DECISIONS.md).
+See [M0 report](M0-REPORT.md), [M3 report](M3-REPORT.md), [Codex findings](docs/adapters/codex.md), [OpenRouter findings](docs/adapters/openrouter.md) and [decisions](DECISIONS.md).
 
 Real sanitized fixtures are under packages/cli/src/fixtures. Codex samples are historical; OpenRouter contains an actual authentication failure, not an authenticated success.

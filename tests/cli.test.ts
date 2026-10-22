@@ -6,8 +6,16 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createServer } from 'node:http';
 import { testAlert } from '../packages/cli/src/core/notify.js';
-import { parseConfig } from '../packages/cli/src/config.js';
+import { loadConfig, parseConfig } from '../packages/cli/src/config.js';
 const exec = promisify(execFile);
+it('resolves a relative SQLite path beside its config so CLI and dashboard share the database', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'quotadog-config-'));
+  try {
+    const file = join(dir, 'config.yaml');
+    await writeFile(file, 'dataFile: data/quotadog.sqlite\n');
+    expect((await loadConfig(file)).dataFile).toBe(join(dir, 'data', 'quotadog.sqlite'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
 it('garbled source prints UNKNOWN, exits 0, and cannot display stale OK', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'quotadog-'));
   try {

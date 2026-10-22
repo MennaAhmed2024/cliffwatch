@@ -4,14 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "engines": {
     "node": ">=22.13"
   },
   "scripts": {
     "build": "tsc -p packages/cli/tsconfig.json",
-    "typecheck": "tsc --noEmit",
+    "build:dashboard": "npm run build && npm run build -w @quotadog/dashboard && node scripts/package-dashboard.mjs",
+    "dev": "npm run dev -w @quotadog/dashboard",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/dashboard/tsconfig.json",
     "pretest": "npm run build",
     "test": "vitest run",
     "lint": "eslint .",

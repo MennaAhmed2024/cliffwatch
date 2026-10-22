@@ -10,9 +10,18 @@
   "bin": {
     "quotadog": "dist/cli.js"
   },
-  "exports": "./dist/core/probe.js",
+  "exports": {
+    ".": "./dist/core/probe.js",
+    "./config": "./dist/config.js",
+    "./daemon": "./dist/daemon.js",
+    "./store": "./dist/core/store.js",
+    "./probe": "./dist/core/probe.js",
+    "./pacing-history": "./dist/core/pacing-history.js",
+    "./notify": "./dist/core/notify.js"
+  },
   "files": [
     "dist",
+    "dashboard",
     "README.md"
   ],
   "dependencies": {

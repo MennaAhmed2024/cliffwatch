@@ -6,6 +6,10 @@ import { probeAll } from './core/probes.js';
 import { openExistingStore, runDaemon } from './daemon.js';
 import { paceView, type PaceView } from './core/pacing-history.js';
 import type { Store } from './core/store.js';
+import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
 
 const eta = (hours: number | null | undefined): string => hours === undefined ? 'unknown' : hours === null ? 'no finite ETA' : `${hours.toFixed(1)}h`;
 function paceFor(store: Store | undefined, provider: string, metric: ProbeResult['metrics'][number], now: Date, intervalMs: number): PaceView | undefined {
@@ -43,7 +47,7 @@ export function render(results: { provider: string; result: ProbeResult }[], now
 }
 async function main() {
   const args = process.argv.slice(2), command = args.shift() ?? 'status';
-  if (command === '--help' || command === 'help') { console.log('quotadog status [--json] [--config PATH]\nquotadog daemon [--once] [--config PATH]\nquotadog history [provider] [--json] [--config PATH]\nquotadog test-alert [--config PATH]\nDashboard arrives in M3.'); return; }
+  if (command === '--help' || command === 'help') { console.log('quotadog status [--json] [--config PATH]\nquotadog daemon [--once] [--config PATH]\nquotadog history [provider] [--json] [--config PATH]\nquotadog test-alert [--config PATH]\nquotadog dashboard [--config PATH]'); return; }
   let path: string | undefined, json = false, once = false, provider: string | undefined;
   while (args.length) {
     const arg = args.shift();
@@ -53,8 +57,25 @@ async function main() {
     else if (command === 'history' && !provider && arg && !arg.startsWith('--')) provider = arg;
     else throw new Error('Invalid arguments. Run quotadog --help.');
   }
-  if (!['status', 'test-alert', 'daemon', 'history'].includes(command) || (once && command !== 'daemon') || (provider && !['codex','openrouter'].includes(provider))) throw new Error('Invalid command or arguments. Run quotadog --help.');
+  if (!['status', 'test-alert', 'daemon', 'history', 'dashboard'].includes(command) || (once && command !== 'daemon') || (provider && !['codex','openrouter'].includes(provider))) throw new Error('Invalid command or arguments. Run quotadog --help.');
   const config = await loadConfig(path);
+  if (command === 'dashboard') {
+    const [major = 0, minor = 0] = process.versions.node.split('.').map(Number);
+    if (major < 20 || (major === 20 && minor < 9)) throw new Error('Dashboard requires Node.js 20.9 or newer.');
+    const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const server = join(root, 'dashboard', 'apps', 'dashboard', 'server.js');
+    if (!existsSync(server)) throw new Error('Dashboard bundle is missing. Build with npm run build:dashboard.');
+    const url = `http://127.0.0.1:${config.dashboardPort}`;
+    console.log(`QuotaDog dashboard: ${url}`);
+    const child = spawn(process.execPath, [server], { cwd: dirname(server), stdio: 'inherit', env: { ...process.env, HOSTNAME: '127.0.0.1', PORT: String(config.dashboardPort), NEXT_TELEMETRY_DISABLED: '1', QUOTADOG_CONFIG_PATH: path ? resolve(path) : undefined } });
+    let stopping = false;
+    const stop = () => { stopping = true; child.kill('SIGTERM'); };
+    process.on('SIGINT', stop); process.on('SIGTERM', stop);
+    const code = await new Promise<number>((done, reject) => { child.once('error', reject); child.once('exit', (value, signal) => done(stopping || signal ? 0 : value ?? 1)); });
+    process.off('SIGINT', stop); process.off('SIGTERM', stop);
+    if (code !== 0) process.exitCode = code;
+    return;
+  }
   if (command === 'test-alert') { await testAlert(config); console.log('Test alert delivered.'); return; }
   if (command === 'daemon') { await runDaemon(config,once); return; }
   if (command === 'history') {

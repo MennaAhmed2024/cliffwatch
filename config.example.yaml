@@ -1,7 +1,9 @@
 # Save as ~/.quotadog/config.yaml; secret VALUES belong in environment variables.
 intervalSeconds: 300
 timeoutMs: 10000
+dashboardPort: 3000
 # Optional: dataFile: /absolute/path/to/quotadog.sqlite
+# A relative dataFile is resolved beside this config file.
 thresholds: [70, 85, 95]
 providers:
   codex:

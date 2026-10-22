@@ -9,7 +9,7 @@ import { freshness, unknown } from './core/probe.js';
 import { SqliteStore, type Store } from './core/store.js';
 
 export function storePath(config: Config): string { return config.dataFile ?? join(homedir(), '.quotadog', 'quotadog.sqlite'); }
-export function openExistingStore(config: Config): Store | undefined { const path = storePath(config); return existsSync(path) ? new SqliteStore(path) : undefined; }
+export function openExistingStore(config: Config): Store | undefined { const path = storePath(config); return existsSync(/* turbopackIgnore: true */ path) ? new SqliteStore(path) : undefined; }
 export type Backoff = Map<string,{failures:number;until:number}>;
 export async function pollOnce(config: Config, store: Store, now = new Date(), probe: (provider: 'codex'|'openrouter',config:Config,now:Date)=>Promise<ProviderResult> = probeProvider, backoff: Backoff = new Map(), log: (text:string)=>void = console.error): Promise<ProviderResult[]> {
   const names: ('codex'|'openrouter')[] = [];
