@@ -23,7 +23,7 @@ describe('real Codex fixture contract', () => {
   });
   it('missing file / executable stay isolated', async () => {
     expect((await probeFile('does-not-exist', now, 1)).state).toBe('unknown');
-    expect((await probeLive('quotadog-nonexistent-executable', 100)).state).toBe('unknown');
+    expect((await probeLive('cliffwatch-nonexistent-executable', 100)).state).toBe('unknown');
   });
   it('live protocol handles multiple buckets; synthetic fixture explicitly constructed', () => {
     const bucket = { primary: { usedPercent: 10, windowDurationMins: 300, resetsAt: now.getTime() / 1000 + 100 }, secondary: { usedPercent: 20, windowDurationMins: 10080, resetsAt: now.getTime() / 1000 + 200 } };

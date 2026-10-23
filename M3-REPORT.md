@@ -2,7 +2,7 @@
 
 ## Works
 
-- `quotadog dashboard [--config PATH]` launches the packaged Next.js standalone server on `127.0.0.1`, using `dashboardPort` from the local config. `npm run dev` launches the same app for development after CLI build.
+- `cliffwatch dashboard [--config PATH]` launches the packaged Next.js standalone server on `127.0.0.1`, using `dashboardPort` from the local config. `npm run dev` launches the same app for development after CLI build.
 - Overview reads the same SQLite as the daemon, shows provider/window cards, global worst state, last probe time, used/remaining percentages, reset time and pacing. It refreshes every 30 seconds.
 - History shows seven-day per-metric line charts and the latest 100 alert events. Settings shows safe configuration metadata and a user-triggered test-alert action. Secret values stay server-side.
 - Stale health, stale samples, expired reset windows, missing data and read failures render `UNKNOWN` without a green percentage. A synthetic fresh 42.5% sample rendered OK; aging its health record immediately changed the same card to UNKNOWN.
@@ -11,7 +11,7 @@
 
 ## Changed from requested UI libraries
 
-React Bits source was removed after reviewing its current MIT + Commons Clause license, which restricts redistribution of the components themselves in open-source repositories. QuotaDog ships an original restrained spotlight hover component. Lenis and GSAP remain integrated.
+At the M3 gate, React Bits source was removed under a conservative license interpretation and the dashboard used an original spotlight effect. A later UI/brand pass superseded that choice after confirming the current license permits component use inside an application: CliffWatch now ships an attributed React Bits SpotlightCard and includes its license notice. Lenis and GSAP remain integrated.
 
 ## Verification
 

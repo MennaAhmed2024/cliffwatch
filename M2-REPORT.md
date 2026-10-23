@@ -1,4 +1,4 @@
-# QuotaDog — M2 gate
+# CliffWatch — M2 gate
 
 Implemented daemon polling, provider isolation and backoff, graceful signal shutdown, heartbeat warnings, SQLite samples/health/alert outbox through one Store interface, status pacing, history, threshold crossing with unique dedupe keys, retries and ordered fallback across free notification channels.
 
@@ -6,7 +6,7 @@ Implemented daemon polling, provider isolation and backoff, graceful signal shut
 
 - 60 tests passed across core, adapters, CLI, storage, delivery and pacing at this gate.
 - Build, TypeScript checks and ESLint passed; `npm audit --omit=dev` reported zero known production vulnerabilities.
-- Packed `quotadog@0.1.0`, installed its tarball in a separate scratch directory, ran `npx --no-install quotadog --help`, and opened the packaged SQLite module against an in-memory database.
+- Packed `cliffwatch@0.1.0`, installed its tarball in a separate scratch directory, ran `npx --no-install cliffwatch --help`, and opened the packaged SQLite module against an in-memory database.
 - A repeated above-threshold poll produces one alert; reopening the same database and polling again still produces one.
 - New reset periods and credit top-ups/refills can cross again; stale gaps and decreases do not create false crossings.
 - Two simulated channel failures move a durable pending alert to the next configured channel. The delivery claim prevents simultaneous workers from selecting the same due alert.

@@ -1,9 +1,9 @@
 import 'server-only';
-import { loadConfig, type Config } from 'quotadog/config';
-import { openExistingStore } from 'quotadog/daemon';
-import { freshness } from 'quotadog/probe';
-import { paceView, type PaceView } from 'quotadog/pacing-history';
-import type { Alert, ProbeHealth, Sample, Store } from 'quotadog/store';
+import { loadConfig, type Config } from 'cliffwatch/config';
+import { openExistingStore } from 'cliffwatch/daemon';
+import { freshness } from 'cliffwatch/probe';
+import { paceView, type PaceView } from 'cliffwatch/pacing-history';
+import type { Alert, ProbeHealth, Sample, Store } from 'cliffwatch/store';
 
 export type Card = {
   key: string; provider: string; bucket: string; window: string; scope: string;
@@ -49,27 +49,27 @@ function sampleCard(sample: Sample, health: ProbeHealth | undefined, config: Con
 
 export async function getOverview(now = new Date()): Promise<Overview> {
   try {
-    const config = await loadConfig(process.env.QUOTADOG_CONFIG_PATH);
+    const config = await loadConfig(process.env.CLIFFWATCH_CONFIG_PATH);
     const enabled = providerNames.filter(name => config.providers[name].enabled);
     const empty = (reason: string): Overview => ({ cards: enabled.map(provider => ({ key: provider, provider, bucket: '—', window: '—', scope: '—', state: 'unknown', reason })), globalState: 'unknown', thresholds: config.thresholds, error: reason });
-    return withStore(config, empty('No local samples yet. Run `quotadog daemon`.'), store => {
+    return withStore(config, empty('No local samples yet. Run `cliffwatch daemon`.'), store => {
       const health = new Map(store.latestHealth().map(item => [item.provider, item]));
       const samples = store.latestSamples().filter(item => enabled.includes(item.provider as typeof enabled[number]));
       const cards = samples.map(sample => sampleCard(sample, health.get(sample.provider), config, now, store));
       for (const provider of enabled) {
-        if (!samples.some(sample => sample.provider === provider)) cards.push({ key: provider, provider, bucket: '—', window: '—', scope: '—', state: 'unknown', reason: health.get(provider)?.reason ?? 'No sample yet. Run `quotadog daemon`.' });
+        if (!samples.some(sample => sample.provider === provider)) cards.push({ key: provider, provider, bucket: '—', window: '—', scope: '—', state: 'unknown', reason: health.get(provider)?.reason ?? 'No sample yet. Run `cliffwatch daemon`.' });
       }
       const rank = { ok: 0, warn: 1, critical: 2, unknown: 3 };
       const globalState = cards.length ? cards.reduce<Card['state']>((state, card) => rank[card.state] > rank[state] ? card.state : state, 'ok') : 'unknown';
       const lastProbeAt = [...health.values()].map(item => item.observedAt).filter(item => Number.isFinite(validTime(item))).sort().at(-1);
       return { cards, globalState, lastProbeAt, heartbeat: store.getHeartbeat(), thresholds: config.thresholds };
     });
-  } catch { const error = 'Cannot read local configuration or quota database.'; return { cards: [{ key: 'store-error', provider: 'QuotaDog', bucket: '—', window: '—', scope: '—', state: 'unknown', reason: error }], globalState: 'unknown', thresholds: [], error }; }
+  } catch { const error = 'Cannot read local configuration or quota database.'; return { cards: [{ key: 'store-error', provider: 'CliffWatch', bucket: '—', window: '—', scope: '—', state: 'unknown', reason: error }], globalState: 'unknown', thresholds: [], error }; }
 }
 
 export async function getHistory(now = new Date()): Promise<History> {
   try {
-    const config = await loadConfig(process.env.QUOTADOG_CONFIG_PATH);
+    const config = await loadConfig(process.env.CLIFFWATCH_CONFIG_PATH);
     return withStore(config, { series: [], alerts: [] }, store => {
       const since = now.getTime() - 7 * 86400000;
       const groups = new Map<string, History['series'][number]>();
@@ -88,7 +88,7 @@ export async function getHistory(now = new Date()): Promise<History> {
 
 export async function getSafeSettings(): Promise<SafeSettings> {
   try {
-    const config = await loadConfig(process.env.QUOTADOG_CONFIG_PATH);
+    const config = await loadConfig(process.env.CLIFFWATCH_CONFIG_PATH);
     return { intervalSeconds: config.intervalSeconds, timeoutMs: config.timeoutMs, thresholds: config.thresholds,
       providers: [
         { name: 'Codex', enabled: config.providers.codex.enabled, detail: `Source: ${config.providers.codex.source}` },

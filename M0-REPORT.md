@@ -1,4 +1,4 @@
-# QuotaDog — M0 gate report
+# CliffWatch — M0 gate report
 
 Research completed on 2026-10-21. Both providers have a documented source or explicit fallback. This is a conditional feasibility result, not a working product or proof of successful live integration.
 

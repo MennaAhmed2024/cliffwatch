@@ -34,7 +34,7 @@ const mapAlert = (r: AlertRow): Alert => ({ id: r.id, dedupeKey: r.dedupe_key, p
 
 export class SqliteStore implements Store {
   private db: Database.Database;
-  constructor(path = join(homedir(), '.quotadog', 'quotadog.sqlite')) {
+  constructor(path = join(homedir(), '.cliffwatch', 'cliffwatch.sqlite')) {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     this.db = new Database(path, { timeout: 5000, fileMustExist: false });
     if (path !== ':memory:') { try { chmodSync(path, 0o600); } catch { /* Windows ACLs apply instead. */ } }

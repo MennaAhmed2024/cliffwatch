@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const workspace = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const scratch = await mkdtemp(join(tmpdir(), 'quotadog-package-'));
+const scratch = await mkdtemp(join(tmpdir(), 'cliffwatch-package-'));
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error('Run via npm run verify:package so npm_execpath is available.');
 
@@ -21,16 +21,18 @@ function run(command, args, options = {}) {
   });
 }
 const npm = (...args) => run(process.execPath, [npmCli, ...args]);
-const packed = await npm('pack', '--workspace', 'quotadog', '--pack-destination', scratch, '--silent');
+const packed = await npm('pack', '--workspace', 'cliffwatch', '--pack-destination', scratch, '--silent');
 const tarball = join(scratch, packed.stdout.trim().split(/\r?\n/).at(-1));
 const installDir = join(scratch, 'install');
 await npm('install', tarball, '--prefix', installDir, '--no-audit', '--no-fund');
-const packageDir = join(installDir, 'node_modules', 'quotadog');
+const packageDir = join(installDir, 'node_modules', 'cliffwatch');
 const cli = join(packageDir, 'dist', 'cli.js');
-const help = await npm('--prefix', installDir, 'exec', '--', 'quotadog', '--help');
-if (!help.stdout.includes('quotadog dashboard')) throw new Error('Packaged CLI help is missing dashboard.');
+const help = await npm('--prefix', installDir, 'exec', '--', 'cliffwatch', '--help');
+if (!help.stdout.includes('cliffwatch dashboard')) throw new Error('Packaged CLI help is missing dashboard.');
 const license = await readFile(join(packageDir, 'LICENSE'), 'utf8');
 if (!license.includes('MIT License')) throw new Error('Packaged license is missing.');
+const notices = await readFile(join(packageDir, 'THIRD_PARTY_NOTICES.md'), 'utf8');
+if (!notices.includes('React Bits')) throw new Error('Packaged React Bits notice is missing.');
 
 const now = new Date();
 const fixtureFile = join(scratch, 'codex.jsonl');
@@ -53,7 +55,7 @@ await writeFile(statusConfigFile, JSON.stringify({
     openrouter: { enabled: false },
   },
 }));
-const coldStatus = await npm('--prefix', installDir, 'exec', '--', 'quotadog', 'status', '--config', statusConfigFile);
+const coldStatus = await npm('--prefix', installDir, 'exec', '--', 'cliffwatch', 'status', '--config', statusConfigFile);
 if (!coldStatus.stdout.includes('codex/codex') || !coldStatus.stdout.includes('42.5%') || !coldStatus.stdout.includes('OK')) {
   throw new Error(`Packed CLI cold status failed.\n${coldStatus.stdout.slice(-2000)}`);
 }

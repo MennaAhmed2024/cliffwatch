@@ -13,7 +13,7 @@ const schema = z.object({
   thresholds: z.array(z.number().min(0).max(100)).nonempty().default([70, 85, 95]),
   providers: z.object({
     codex: z.object({ enabled: z.boolean().default(true), source: z.enum(['live', 'file']).default('live'), command: z.string().min(1).default('codex'), file: z.string().optional() }).strict().default({}),
-    openrouter: z.object({ enabled: z.boolean().default(true), keyEnv: envName.default('OPENROUTER_API_KEY'), scope: z.enum(['key', 'account']).default('key') }).strict().default({}),
+    openrouter: z.object({ enabled: z.boolean().default(false), keyEnv: envName.default('OPENROUTER_API_KEY'), scope: z.enum(['key', 'account']).default('key') }).strict().default({}),
   }).strict().default({}),
   channels: z.array(z.discriminatedUnion('type', [
     z.object({ type: z.literal('webhook'), urlEnv: envName }).strict(),
@@ -34,7 +34,7 @@ export function parseConfig(text: string): Config {
   } catch { throw new Error('Invalid config: check documented keys, types, env references and file source path.'); }
 }
 export async function loadConfig(path?: string): Promise<Config> {
-  const file = path ? resolve(path) : join(homedir(), '.quotadog', 'config.yaml');
+  const file = path ? resolve(path) : join(homedir(), '.cliffwatch', 'config.yaml');
   try {
     const config = parseConfig(await readFile(/* turbopackIgnore: true */ file, 'utf8'));
     if (config.dataFile && !isAbsolute(config.dataFile)) config.dataFile = resolve(dirname(file), config.dataFile);

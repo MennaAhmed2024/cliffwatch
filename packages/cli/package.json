@@ -1,14 +1,14 @@
 {
-  "name": "quotadog",
+  "name": "cliffwatch",
   "version": "0.1.0",
-  "description": "Local-first AI quota watchdog",
+  "description": "Know your AI limits before you hit them — local quota status, pacing, alerts and dashboard",
   "type": "module",
   "license": "MIT",
   "engines": {
     "node": ">=20"
   },
   "bin": {
-    "quotadog": "dist/cli.js"
+    "cliffwatch": "dist/cli.js"
   },
   "exports": {
     ".": "./dist/core/probe.js",
@@ -22,7 +22,8 @@
   "files": [
     "dist",
     "dashboard",
-    "README.md"
+    "README.md",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "dependencies": {
     "better-sqlite3": "^11.10.0",

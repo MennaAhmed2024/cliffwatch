@@ -76,7 +76,7 @@ export function readLive(command: string, timeoutMs: number): Promise<unknown> {
         } catch { finish(new Error('Codex protocol returned invalid JSON.')); }
       }
     });
-    send({ id: 1, method: 'initialize', params: { clientInfo: { name: 'quotadog', title: 'QuotaDog', version: '0.1.0' } } });
+    send({ id: 1, method: 'initialize', params: { clientInfo: { name: 'cliffwatch', title: 'CliffWatch', version: '0.1.0' } } });
   });
 }
 export function parseLive(raw: unknown, now: Date): ProbeResult {

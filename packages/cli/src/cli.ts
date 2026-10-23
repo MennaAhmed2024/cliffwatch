@@ -47,7 +47,7 @@ export function render(results: { provider: string; result: ProbeResult }[], now
 }
 async function main() {
   const args = process.argv.slice(2), command = args.shift() ?? 'status';
-  if (command === '--help' || command === 'help') { console.log('quotadog status [--json] [--config PATH]\nquotadog daemon [--once] [--config PATH]\nquotadog history [provider] [--json] [--config PATH]\nquotadog test-alert [--config PATH]\nquotadog dashboard [--config PATH]'); return; }
+  if (command === '--help' || command === 'help') { console.log('cliffwatch status [--json] [--config PATH]\ncliffwatch daemon [--once] [--config PATH]\ncliffwatch history [provider] [--json] [--config PATH]\ncliffwatch test-alert [--config PATH]\ncliffwatch dashboard [--config PATH]'); return; }
   let path: string | undefined, json = false, once = false, provider: string | undefined;
   while (args.length) {
     const arg = args.shift();
@@ -55,9 +55,9 @@ async function main() {
     else if (arg === '--once') once = true;
     else if (arg === '--config' && args[0] && !args[0].startsWith('--')) path = args.shift();
     else if (command === 'history' && !provider && arg && !arg.startsWith('--')) provider = arg;
-    else throw new Error('Invalid arguments. Run quotadog --help.');
+    else throw new Error('Invalid arguments. Run cliffwatch --help.');
   }
-  if (!['status', 'test-alert', 'daemon', 'history', 'dashboard'].includes(command) || (once && command !== 'daemon') || (provider && !['codex','openrouter'].includes(provider))) throw new Error('Invalid command or arguments. Run quotadog --help.');
+  if (!['status', 'test-alert', 'daemon', 'history', 'dashboard'].includes(command) || (once && command !== 'daemon') || (provider && !['codex','openrouter'].includes(provider))) throw new Error('Invalid command or arguments. Run cliffwatch --help.');
   const config = await loadConfig(path);
   if (command === 'dashboard') {
     const [major = 0, minor = 0] = process.versions.node.split('.').map(Number);
@@ -66,8 +66,8 @@ async function main() {
     const server = join(root, 'dashboard', 'apps', 'dashboard', 'server.js');
     if (!existsSync(server)) throw new Error('Dashboard bundle is missing. Build with npm run build:dashboard.');
     const url = `http://127.0.0.1:${config.dashboardPort}`;
-    console.log(`QuotaDog dashboard: ${url}`);
-    const child = spawn(process.execPath, [server], { cwd: dirname(server), stdio: 'inherit', env: { ...process.env, HOSTNAME: '127.0.0.1', PORT: String(config.dashboardPort), NEXT_TELEMETRY_DISABLED: '1', QUOTADOG_CONFIG_PATH: path ? resolve(path) : undefined } });
+    console.log(`CliffWatch dashboard: ${url}`);
+    const child = spawn(process.execPath, [server], { cwd: dirname(server), stdio: 'inherit', env: { ...process.env, HOSTNAME: '127.0.0.1', PORT: String(config.dashboardPort), NEXT_TELEMETRY_DISABLED: '1', CLIFFWATCH_CONFIG_PATH: path ? resolve(path) : undefined } });
     let stopping = false;
     const stop = () => { stopping = true; child.kill('SIGTERM'); };
     process.on('SIGINT', stop); process.on('SIGTERM', stop);
@@ -80,10 +80,10 @@ async function main() {
   if (command === 'daemon') { await runDaemon(config,once); return; }
   if (command === 'history') {
     const store = openExistingStore(config);
-    if (!store) { console.log('No samples yet — run quotadog daemon.'); return; }
+    if (!store) { console.log('No samples yet — run cliffwatch daemon.'); return; }
     try {
       const samples = store.history(provider), alerts = store.alertHistory(100);
-      console.log(json ? JSON.stringify({samples,alerts},null,2) : samples.length ? samples.map(s => `${s.observedAt} ${s.provider}/${s.bucket}/${s.window} ${s.usedPct.toFixed(1)}% reset ${s.resetsAt ?? 'none'}`).join('\n')+'\nAlerts: '+alerts.length : 'No samples yet — run quotadog daemon.');
+      console.log(json ? JSON.stringify({samples,alerts},null,2) : samples.length ? samples.map(s => `${s.observedAt} ${s.provider}/${s.bucket}/${s.window} ${s.usedPct.toFixed(1)}% reset ${s.resetsAt ?? 'none'}`).join('\n')+'\nAlerts: '+alerts.length : 'No samples yet — run cliffwatch daemon.');
     } finally { store.close(); }
     return;
   }
@@ -96,9 +96,9 @@ async function main() {
   }
   let store: Store | undefined;
   try { store = openExistingStore(config); }
-  catch { console.error('QuotaDog: history store unavailable; pace is unknown.'); }
+  catch { console.error('CliffWatch: history store unavailable; pace is unknown.'); }
   try { console.log(json ? JSON.stringify(results, null, 2) : render(results, new Date(),store,config.intervalSeconds*1000)); }
   finally { store?.close(); }
 }
 // The executable owns errors; adapters always report unknown rather than throwing.
-main().catch((error: unknown) => { console.error('QuotaDog: ' + (error instanceof Error ? error.message : 'Command failed.')); process.exitCode = 1; });
+main().catch((error: unknown) => { console.error('CliffWatch: ' + (error instanceof Error ? error.message : 'Command failed.')); process.exitCode = 1; });

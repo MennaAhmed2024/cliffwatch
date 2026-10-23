@@ -8,7 +8,7 @@ import { probeProvider, type ProviderResult } from './core/probes.js';
 import { freshness, unknown } from './core/probe.js';
 import { SqliteStore, type Store } from './core/store.js';
 
-export function storePath(config: Config): string { return config.dataFile ?? join(homedir(), '.quotadog', 'quotadog.sqlite'); }
+export function storePath(config: Config): string { return config.dataFile ?? join(homedir(), '.cliffwatch', 'cliffwatch.sqlite'); }
 export function openExistingStore(config: Config): Store | undefined { const path = storePath(config); return existsSync(/* turbopackIgnore: true */ path) ? new SqliteStore(path) : undefined; }
 export type Backoff = Map<string,{failures:number;until:number}>;
 export async function pollOnce(config: Config, store: Store, now = new Date(), probe: (provider: 'codex'|'openrouter',config:Config,now:Date)=>Promise<ProviderResult> = probeProvider, backoff: Backoff = new Map(), log: (text:string)=>void = console.error): Promise<ProviderResult[]> {
@@ -29,16 +29,16 @@ export async function pollOnce(config: Config, store: Store, now = new Date(), p
       if (!entry.result.reason?.startsWith('Backoff')) {
         const failures = (backoff.get(entry.provider)?.failures ?? 0)+1;
         backoff.set(entry.provider,{failures,until:now.getTime()+Math.min(3600000,config.intervalSeconds*1000*2**Math.min(failures,8))});
-        log(`QuotaDog ${entry.provider}: UNKNOWN — ${entry.result.reason}`);
+        log(`CliffWatch ${entry.provider}: UNKNOWN — ${entry.result.reason}`);
       }
       continue;
     }
     backoff.delete(entry.provider);
     try { store.transaction(() => { for (const metric of entry.result.metrics) recordMetric(store,metric,config.thresholds,config.intervalSeconds*2000); }); }
-    catch { entry.result = unknown('Cannot persist quota sample.'); store.putHealth({provider:entry.provider,state:'unknown',reason:entry.result.reason,observedAt}); log(`QuotaDog ${entry.provider}: UNKNOWN — cannot persist quota sample.`); }
+    catch { entry.result = unknown('Cannot persist quota sample.'); store.putHealth({provider:entry.provider,state:'unknown',reason:entry.result.reason,observedAt}); log(`CliffWatch ${entry.provider}: UNKNOWN — cannot persist quota sample.`); }
   }
   try { await deliverDueAlerts(store,config,new Date(),fetch,log); }
-  catch { log('QuotaDog: alert outbox processing failed; pending alerts remain for retry.'); }
+  catch { log('CliffWatch: alert outbox processing failed; pending alerts remain for retry.'); }
   store.setHeartbeat(new Date().toISOString());
   return results;
 }
@@ -59,7 +59,7 @@ export async function runDaemon(config: Config, once = false, signal?: AbortSign
   process.on('SIGINT',abort); process.on('SIGTERM',abort);
   try {
     const heartbeat = store.getHeartbeat();
-    if (heartbeat && Date.now()-Date.parse(heartbeat)>config.intervalSeconds*2000) log(`QuotaDog: previous daemon heartbeat is older than two intervals (last ${heartbeat}).`);
+    if (heartbeat && Date.now()-Date.parse(heartbeat)>config.intervalSeconds*2000) log(`CliffWatch: previous daemon heartbeat is older than two intervals (last ${heartbeat}).`);
     const backoff: Backoff = new Map();
     do {
       if (controller.signal.aborted) break;

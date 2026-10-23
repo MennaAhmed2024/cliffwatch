@@ -1,5 +1,5 @@
 {
-  "name": "quotadog-workspace",
+  "name": "cliffwatch-workspace",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -12,8 +12,8 @@
   },
   "scripts": {
     "build": "tsc -p packages/cli/tsconfig.json",
-    "build:dashboard": "npm run build && npm run build -w @quotadog/dashboard && node scripts/package-dashboard.mjs",
-    "dev": "npm run dev -w @quotadog/dashboard",
+    "build:dashboard": "npm run build && npm run build -w @cliffwatch/dashboard && node scripts/package-dashboard.mjs",
+    "dev": "npm run dev -w @cliffwatch/dashboard",
     "typecheck": "tsc --noEmit && tsc --noEmit -p apps/dashboard/tsconfig.json",
     "pretest": "npm run build",
     "test": "vitest run",

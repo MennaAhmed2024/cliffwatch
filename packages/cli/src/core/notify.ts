@@ -21,20 +21,20 @@ async function post(request: typeof fetch, url: URL, init: RequestInit, timeoutM
 async function desktop(message: string, timeoutMs: number): Promise<void> {
   try {
     if (process.platform === 'win32') {
-      const script = 'Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $n=New-Object System.Windows.Forms.NotifyIcon; $n.Icon=[System.Drawing.SystemIcons]::Information; $n.Visible=$true; $n.BalloonTipTitle="QuotaDog"; $n.BalloonTipText=$env:QUOTADOG_ALERT_TEXT; $n.ShowBalloonTip(3000); Start-Sleep -Seconds 4; $n.Dispose()';
-      await run('powershell.exe', ['-NoProfile','-NonInteractive','-Command',script], { timeout: timeoutMs, windowsHide: true, env: { QUOTADOG_ALERT_TEXT: message, SystemRoot: process.env.SystemRoot } });
+      const script = 'Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $n=New-Object System.Windows.Forms.NotifyIcon; $n.Icon=[System.Drawing.SystemIcons]::Information; $n.Visible=$true; $n.BalloonTipTitle="CliffWatch"; $n.BalloonTipText=$env:CLIFFWATCH_ALERT_TEXT; $n.ShowBalloonTip(3000); Start-Sleep -Seconds 4; $n.Dispose()';
+      await run('powershell.exe', ['-NoProfile','-NonInteractive','-Command',script], { timeout: timeoutMs, windowsHide: true, env: { CLIFFWATCH_ALERT_TEXT: message, SystemRoot: process.env.SystemRoot } });
     } else if (process.platform === 'darwin') {
-      await run('osascript', ['-e','on run argv','-e','display notification (item 1 of argv) with title "QuotaDog"','-e','end run',message], { timeout: timeoutMs });
+      await run('osascript', ['-e','on run argv','-e','display notification (item 1 of argv) with title "CliffWatch"','-e','end run',message], { timeout: timeoutMs });
     } else {
-      await run('notify-send', ['QuotaDog',message], { timeout: timeoutMs });
+      await run('notify-send', ['CliffWatch',message], { timeout: timeoutMs });
     }
   } catch { throw new Error('Desktop notification failed; check graphical session/notification support.'); }
 }
 export async function sendMessage(channel: Channel, message: string, kind: 'test' | 'threshold', timeoutMs: number, env: NodeJS.ProcessEnv = process.env, request: typeof fetch = fetch): Promise<void> {
   if (channel.type === 'desktop') return desktop(message, timeoutMs);
-  if (channel.type === 'webhook') return post(request, safeUrl(env[channel.urlEnv]), { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: `quotadog.${kind}`, message, at: new Date().toISOString() }) }, timeoutMs);
+  if (channel.type === 'webhook') return post(request, safeUrl(env[channel.urlEnv]), { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: `cliffwatch.${kind}`, message, at: new Date().toISOString() }) }, timeoutMs);
   if (channel.type === 'discord') return post(request, safeUrl(env[channel.urlEnv]), { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: message, allowed_mentions: { parse: [] } }) }, timeoutMs);
-  if (channel.type === 'ntfy') return post(request, safeUrl(env[channel.urlEnv]), { headers: { 'Content-Type': 'text/plain; charset=utf-8', Title: 'QuotaDog' }, body: message }, timeoutMs);
+  if (channel.type === 'ntfy') return post(request, safeUrl(env[channel.urlEnv]), { headers: { 'Content-Type': 'text/plain; charset=utf-8', Title: 'CliffWatch' }, body: message }, timeoutMs);
   const token = env[channel.botTokenEnv], chatId = env[channel.chatIdEnv];
   if (!token || !/^[0-9]+:[A-Za-z0-9_-]+$/.test(token) || !chatId || !/^-?[0-9]+$/.test(chatId)) throw new Error('Telegram token/chat ID environment values are missing or invalid.');
   try {
@@ -45,18 +45,18 @@ export async function sendMessage(channel: Channel, message: string, kind: 'test
 export async function testAlert(config: Config, env: NodeJS.ProcessEnv = process.env, request: typeof fetch = fetch): Promise<void> {
   const channel = config.channels[0];
   if (!channel) throw new Error('No notification channel configured.');
-  await sendMessage(channel, 'QuotaDog test alert: notification delivery is working.', 'test', config.timeoutMs, env, request);
+  await sendMessage(channel, 'CliffWatch test alert: notification delivery is working.', 'test', config.timeoutMs, env, request);
 }
 export async function deliverDueAlerts(store: Store, config: Config, now: Date, request: typeof fetch = fetch, log: (message: string) => void = console.error): Promise<void> {
   const due = store.claimDueAlerts(now, Math.max(30000,config.timeoutMs+10000));
   for (const alert of due) {
     const channel = config.channels[alert.channelIndex];
     if (!channel) {
-      log(`QuotaDog alert ${alert.dedupeKey}: no configured fallback channel; pending.`);
+      log(`CliffWatch alert ${alert.dedupeKey}: no configured fallback channel; pending.`);
       store.markAlertFailure(alert.id,alert.channelIndex,alert.attempts+1,new Date(now.getTime()+300000).toISOString(),'No channel configured');
       continue;
     }
-    const message = `QuotaDog: ${alert.provider} ${alert.window} crossed ${alert.threshold}% used. Check status before the quota wall.`;
+    const message = `CliffWatch: ${alert.provider} ${alert.window} crossed ${alert.threshold}% used. Check status before the quota wall.`;
     try {
       await sendMessage(channel,message,'threshold',config.timeoutMs,process.env,request);
       store.markAlertDelivered(alert.id,new Date().toISOString());
@@ -65,7 +65,7 @@ export async function deliverDueAlerts(store: Store, config: Config, now: Date, 
       const nextIndex = attempts % 2 === 0 ? Math.min(alert.channelIndex+1,config.channels.length-1) : alert.channelIndex;
       const delay = Math.min(3600000,30000*2**Math.min(attempts-1,10));
       store.markAlertFailure(alert.id,nextIndex,attempts,new Date(now.getTime()+delay).toISOString(),'Delivery failed');
-      log(`QuotaDog alert ${alert.dedupeKey}: delivery failed on ${channel.type}; retry scheduled${nextIndex !== alert.channelIndex ? ' via fallback' : ''}.`);
+      log(`CliffWatch alert ${alert.dedupeKey}: delivery failed on ${channel.type}; retry scheduled${nextIndex !== alert.channelIndex ? ' via fallback' : ''}.`);
     }
   }
 }

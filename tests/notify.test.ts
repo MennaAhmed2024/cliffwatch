@@ -17,6 +17,6 @@ it('Discord forbids mass mentions and uses one POST', async () => {
 it('ntfy sends plain text to the configured topic', async () => {
   const c = parseConfig('channels:\n  - type: ntfy\n    urlEnv: NTFY_URL');
   let contentType = '';
-  await sendMessage(c.channels[0]!,'QuotaDog alert','threshold',1000,{NTFY_URL:'https://ntfy.sh/quotadog-test'},async (_url,init) => { contentType=String((init?.headers as Record<string,string>)['Content-Type']); return new Response(null,{status:200}); });
+  await sendMessage(c.channels[0]!,'CliffWatch alert','threshold',1000,{NTFY_URL:'https://ntfy.sh/cliffwatch-test'},async (_url,init) => { contentType=String((init?.headers as Record<string,string>)['Content-Type']); return new Response(null,{status:200}); });
   expect(contentType).toContain('text/plain');
 });

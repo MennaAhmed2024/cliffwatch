@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { loadConfig } from 'quotadog/config';
-import { testAlert } from 'quotadog/notify';
+import { loadConfig } from 'cliffwatch/config';
+import { testAlert } from 'cliffwatch/notify';
 import { isLocalSameOrigin } from '@/lib/request';
 
 export async function POST(request: Request) {
   if (!isLocalSameOrigin(request)) return NextResponse.json({ ok: false, message: 'Local same-origin request required.' }, { status: 403 });
   try {
-    const config = await loadConfig(process.env.QUOTADOG_CONFIG_PATH);
+    const config = await loadConfig(process.env.CLIFFWATCH_CONFIG_PATH);
     await testAlert(config);
     return NextResponse.json({ ok: true, message: 'Test alert delivered.' }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {

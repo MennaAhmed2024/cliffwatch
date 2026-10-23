@@ -11,7 +11,7 @@ import { pollOnce, runDaemon } from '../packages/cli/src/daemon.js';
 import type { Metric } from '../packages/cli/src/core/probe.js';
 
 async function withStore(fn: (store: SqliteStore, path: string) => Promise<void> | void) {
-  const dir = await mkdtemp(join(tmpdir(),'quotadog-m2-')), path = join(dir,'quota.sqlite');
+  const dir = await mkdtemp(join(tmpdir(),'cliffwatch-m2-')), path = join(dir,'quota.sqlite');
   let store: SqliteStore | undefined;
   try { store = new SqliteStore(path); await fn(store,path); }
   finally { store?.close(); await rm(dir,{recursive:true,force:true}); }
@@ -80,7 +80,7 @@ describe('delivery outbox', () => {
 });
 describe('daemon and historical pacing', () => {
   it('per-provider isolation records unknown health and healthy samples', async () => withStore(async store => {
-    const t = new Date(), reset = new Date(t.getTime()+3600000), cfg = parseConfig('channels: []');
+    const t = new Date(), reset = new Date(t.getTime()+3600000), cfg = parseConfig('providers:\n  openrouter:\n    enabled: true\nchannels: []');
     await pollOnce(cfg,store,t,async name => name === 'codex' ? {provider:name,result:{state:'ok',metrics:[metric(30,t,reset)]}} : {provider:name,result:{state:'unknown',reason:'401',metrics:[]}},new Map(),()=>{});
     expect(store.latestSamples()).toHaveLength(1);
     expect(store.latestHealth()).toMatchObject([{provider:'codex',state:'ok'},{provider:'openrouter',state:'unknown',reason:'401'}]);

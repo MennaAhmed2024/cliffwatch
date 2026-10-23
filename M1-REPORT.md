@@ -1,4 +1,4 @@
-# QuotaDog — M1 gate
+# CliffWatch — M1 gate
 
 Implemented status, optional validated YAML configuration, Codex live/file adapters, OpenRouter key/account adapters, generic webhook test-alert, pure window/pacing functions and a distributable local npm package.
 
@@ -9,7 +9,7 @@ Implemented status, optional validated YAML configuration, Codex live/file adapt
 - Notification: a spawned CLI sends a real POST to an ephemeral loopback HTTP server and verifies received JSON.
 - Build, TypeScript checks and ESLint passed. Dependency audit after updating test tooling: zero vulnerabilities.
 - Actual Codex initialization and quota read succeeded; no inference or mutation RPCs.
-- Local tarball installed into a separate scratch directory with only its production dependencies; npx --no-install quotadog status --json worked.
+- Local tarball installed into a separate scratch directory with only its production dependencies; npx --no-install cliffwatch status --json worked.
 
 ## Current machine results / open risks
 
@@ -22,6 +22,6 @@ Implemented status, optional validated YAML configuration, Codex live/file adapt
 
 ## Deferred, not stubbed
 
-M2 owns SQLite, daemon polling/backoff/heartbeat, history, crossing detection, dedupe and notification retries/fallback. Status pace is explicitly unknown; tested pure pacing functions are not presented as live historical predictions. M3 owns dashboard. M4 owns publication and CI/release checks. No registry publication or claim that public npx quotadog resolves to this project.
+M2 owns SQLite, daemon polling/backoff/heartbeat, history, crossing detection, dedupe and notification retries/fallback. Status pace is explicitly unknown; tested pure pacing functions are not presented as live historical predictions. M3 owns dashboard. M4 owns publication and CI/release checks. No registry publication or claim that public npx cliffwatch resolves to this project.
 
 Ready for the M1 gate with these integration limitations disclosed. Wait for continue before M2.

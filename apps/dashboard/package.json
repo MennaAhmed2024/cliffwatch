@@ -1,5 +1,5 @@
 {
-  "name": "@quotadog/dashboard",
+  "name": "@cliffwatch/dashboard",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,7 +8,7 @@
     "build": "node ../../scripts/run-next.mjs build --webpack"
   },
   "dependencies": {
-    "quotadog": "file:../../packages/cli",
+    "cliffwatch": "file:../../packages/cli",
     "next": "^16.4.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
