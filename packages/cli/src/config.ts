@@ -1,7 +1,7 @@
-import { readFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { parse } from 'yaml';
+import { parse, stringify } from 'yaml';
 import { z } from 'zod';
 
 const envName = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
@@ -24,6 +24,7 @@ const schema = z.object({
   ])).default([]),
 }).strict();
 export type Config = z.infer<typeof schema>;
+export function configPath(path?: string): string { return path ? resolve(path) : join(homedir(), '.cliffwatch', 'config.yaml'); }
 export function parseConfig(text: string): Config {
   try {
     const config = schema.parse(parse(text, { maxAliasCount: 0 }) ?? {});
@@ -34,7 +35,7 @@ export function parseConfig(text: string): Config {
   } catch { throw new Error('Invalid config: check documented keys, types, env references and file source path.'); }
 }
 export async function loadConfig(path?: string): Promise<Config> {
-  const file = path ? resolve(path) : join(homedir(), '.cliffwatch', 'config.yaml');
+  const file = configPath(path);
   try {
     const config = parseConfig(await readFile(/* turbopackIgnore: true */ file, 'utf8'));
     if (config.dataFile && !isAbsolute(config.dataFile)) config.dataFile = resolve(dirname(file), config.dataFile);
@@ -45,4 +46,11 @@ export async function loadConfig(path?: string): Promise<Config> {
     if (error instanceof Error && error.message.startsWith('Invalid config:')) throw error;
     throw new Error('Cannot read config file.');
   }
+}
+export async function saveConfig(config: Config, path?: string): Promise<string> {
+  const file = configPath(path);
+  await mkdir(dirname(file), { recursive: true });
+  await writeFile(file, stringify(config), { encoding: 'utf8', mode: 0o600 });
+  await chmod(file, 0o600).catch(() => undefined);
+  return file;
 }

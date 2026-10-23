@@ -17,7 +17,8 @@
     "./store": "./dist/core/store.js",
     "./probe": "./dist/core/probe.js",
     "./pacing-history": "./dist/core/pacing-history.js",
-    "./notify": "./dist/core/notify.js"
+    "./notify": "./dist/core/notify.js",
+    "./setup": "./dist/setup.js"
   },
   "files": [
     "dist",
