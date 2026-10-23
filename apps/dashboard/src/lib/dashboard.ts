@@ -4,10 +4,11 @@ import { openExistingStore } from 'cliffwatch/daemon';
 import { freshness } from 'cliffwatch/probe';
 import { paceView, type PaceView } from 'cliffwatch/pacing-history';
 import type { Alert, ProbeHealth, Sample, Store } from 'cliffwatch/store';
+import { isStaleAge, sampleAge } from './freshness';
 
 export type Card = {
   key: string; provider: string; bucket: string; window: string; scope: string;
-  state: 'ok' | 'warn' | 'critical' | 'unknown'; reason?: string;
+  state: 'ok' | 'warn' | 'critical' | 'unknown'; reason?: string; stale?: boolean; ageMs?: number;
   usedPct?: number; remainingPct?: number; usedAbsolute?: number; limitAbsolute?: number;
   observedAt?: string; resetsAt?: string; pace?: PaceView;
 };
@@ -16,7 +17,6 @@ export type History = { series: { key: string; provider: string; bucket: string;
 export type SafeSettings = { intervalSeconds: number; timeoutMs: number; thresholds: number[]; providers: { name: string; enabled: boolean; detail: string }[]; channels: { type: string; envNames: string[] }[]; error?: string };
 
 const providerNames = ['codex', 'openrouter'] as const;
-const maxAge = (config: Config) => config.intervalSeconds * 2000;
 const validTime = (value: string | undefined): number => value ? Date.parse(value) : NaN;
 
 function withStore<T>(config: Config, fallback: T, read: (store: Store) => T): T {
@@ -34,17 +34,18 @@ function classify(sample: Sample, config: Config): Card['state'] {
 
 function sampleCard(sample: Sample, health: ProbeHealth | undefined, config: Config, now: Date, store: Store): Card {
   const base: Card = { key: `${sample.provider}|${sample.bucket}|${sample.window}|${sample.scope}`, provider: sample.provider, bucket: sample.bucket, window: sample.window, scope: sample.scope, state: 'unknown' };
+  const ageMs = sampleAge(sample.observedAt, now.getTime());
+  const stale = isStaleAge(ageMs, config.intervalSeconds);
   const reason = !health ? 'No provider health record yet.'
     : health.state === 'unknown' ? health.reason ?? 'Provider reported unknown.'
-    : !freshness(health.observedAt, now, maxAge(config)) ? 'Daemon health is stale.'
-    : !freshness(sample.sourceObservedAt, now, maxAge(config)) || !freshness(sample.observedAt, now, maxAge(config)) ? 'Quota sample is stale.'
+    : !freshness(sample.sourceObservedAt, now, Number.MAX_SAFE_INTEGER) || ageMs === undefined ? 'Quota sample timestamp is invalid.'
     : sample.resetsAt && (!Number.isFinite(validTime(sample.resetsAt)) || validTime(sample.resetsAt) <= now.getTime()) ? 'Quota reset time is invalid or expired; waiting for a new sample.'
     : !Number.isFinite(sample.usedPct) || sample.usedPct < 0 || sample.usedPct > 100 ? 'Quota sample is invalid.'
     : undefined;
   if (reason) return { ...base, reason, observedAt: sample.observedAt };
   const history = store.history(sample.provider, 10000).filter(s => s.bucket === sample.bucket && s.window === sample.window && s.scope === sample.scope && s.state === 'ok');
   const pace = paceView(history.reverse(), now, config.intervalSeconds * 1000);
-  return { ...base, state: classify(sample, config), usedPct: sample.usedPct, remainingPct: 100 - sample.usedPct, usedAbsolute: sample.usedAbsolute, limitAbsolute: sample.limitAbsolute, observedAt: sample.observedAt, resetsAt: sample.resetsAt, pace };
+  return { ...base, state: classify(sample, config), stale, ageMs, usedPct: sample.usedPct, remainingPct: 100 - sample.usedPct, usedAbsolute: sample.usedAbsolute, limitAbsolute: sample.limitAbsolute, observedAt: sample.observedAt, resetsAt: sample.resetsAt, pace };
 }
 
 export async function getOverview(now = new Date()): Promise<Overview> {
@@ -92,7 +93,7 @@ export async function getSafeSettings(): Promise<SafeSettings> {
     return { intervalSeconds: config.intervalSeconds, timeoutMs: config.timeoutMs, thresholds: config.thresholds,
       providers: [
         { name: 'Codex', enabled: config.providers.codex.enabled, detail: `Source: ${config.providers.codex.source}` },
-        { name: 'OpenRouter', enabled: config.providers.openrouter.enabled, detail: `Key environment variable: ${config.providers.openrouter.keyEnv}; scope: ${config.providers.openrouter.scope}` },
+        { name: 'OpenRouter (experimental)', enabled: config.providers.openrouter.enabled, detail: `Key environment variable: ${config.providers.openrouter.keyEnv}; scope: ${config.providers.openrouter.scope}` },
       ],
       channels: config.channels.map(channel => ({ type: channel.type, envNames: channel.type === 'telegram' ? [channel.botTokenEnv, channel.chatIdEnv] : channel.type === 'desktop' ? [] : [channel.urlEnv] })) };
   } catch { return { intervalSeconds: 0, timeoutMs: 0, thresholds: [], providers: [], channels: [], error: 'Cannot read local configuration.' }; }

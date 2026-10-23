@@ -6,6 +6,7 @@ import { MetricCard } from './MetricCard';
 import { GettingStarted } from './GettingStarted';
 
 const date = (value?: string) => value ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Waiting for first probe';
+const age = (value?: string) => { if (!value) return 'waiting for first probe'; const ms = Date.now() - Date.parse(value); return ms < 60000 ? 'as of just now' : ms < 3600000 ? `as of ${Math.floor(ms / 60000)}m ago` : `as of ${Math.floor(ms / 3600000)}h ago`; };
 
 export function OverviewLive({ initial }: { initial: Overview }) {
   const [data, setData] = useState(initial);
@@ -25,12 +26,12 @@ export function OverviewLive({ initial }: { initial: Overview }) {
       <div className="status-grid" aria-hidden="true" />
       <div className="status-copy"><span className={`hero-state hero-state--${data.globalState}`}><i /> {data.globalState === 'unknown' ? 'SIGNAL PENDING' : `${data.globalState.toUpperCase()} STATUS`}</span><h2>{statusTitle}</h2><p>{data.error ?? 'Live readings from the local CliffWatch engine. No cloud account required.'}</p></div>
       <div className="status-telemetry">
-        <div><span>LAST PROBE</span><strong>{date(data.lastProbeAt)}</strong></div>
+        <div><span>LAST STORED PROBE</span><strong>{age(data.lastProbeAt)} · {date(data.lastProbeAt)}</strong></div>
         <div><span>MONITORED WINDOWS</span><strong className="numeric">{data.cards.length.toString().padStart(2, '0')}</strong></div>
         <div><span>ALERT LINES</span><strong className="numeric">{data.thresholds.length ? data.thresholds.map(value => `${value}%`).join(' · ') : '—'}</strong></div>
       </div>
     </section>
-    <div className="section-heading" data-entrance><div><span className="section-index">01</span><div><h2>Quota runway</h2><p>Provider truth, pace, and estimated time left.</p></div></div><span className="refresh-label"><i /> Auto-refresh · 30s</span></div>
+    <div className="section-heading" data-entrance><div><span className="section-index">01</span><div><h2>Quota runway</h2><p>Provider truth, pace, and estimated time left.</p></div></div><span className="refresh-label"><i /> Store re-read · 30s</span></div>
     {data.cards.length ? <div className="cards">{data.cards.map(card => <MetricCard key={card.key} card={card} />)}</div> : <div className="empty">No providers enabled or local configuration unavailable.</div>}
     {needsSetup ? <GettingStarted /> : null}
     <p className="footnote">Pacing appears after at least 80% observed coverage. Missing or stale evidence stays <strong>UNKNOWN</strong>—CliffWatch never invents a safe reading.</p>

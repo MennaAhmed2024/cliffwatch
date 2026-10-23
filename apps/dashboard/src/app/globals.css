@@ -219,6 +219,9 @@ button { font: inherit; }
 .metric-grid dt { color: #9ca6b4; font-size: 9px; margin-bottom: 3px; }
 .metric-grid dd { margin: 0; color: #354154; font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
 .card-foot { margin-top: 9px; padding-top: 8px; display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #eef1f5; color: #a0a9b6; font-size: 8px; }
+.metric-card--stale { filter: grayscale(.72); opacity: .78; }
+.card-pills { display:flex; gap:.4rem; align-items:center; }
+.pill--stale { background:#eef0f4; color:#667085; border-color:#cbd1dc; }
 .unknown-box { min-height: 205px; margin: 24px 0 0; display: flex; align-items: center; gap: 20px; color: #788499; }
 .unknown-box strong { display: block; color: #374255; font-size: 14px; margin-bottom: 4px; }
 .unknown-box p { max-width: 300px; margin: 0; font-size: 11px; }

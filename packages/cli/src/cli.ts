@@ -10,6 +10,7 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import { lastCodexDiscovery } from './adapters/codex-discovery.js';
 
 const eta = (hours: number | null | undefined): string => hours === undefined ? 'unknown' : hours === null ? 'no finite ETA' : `${hours.toFixed(1)}h`;
 function paceFor(store: Store | undefined, provider: string, metric: ProbeResult['metrics'][number], now: Date, intervalMs: number): PaceView | undefined {
@@ -47,17 +48,18 @@ export function render(results: { provider: string; result: ProbeResult }[], now
 }
 async function main() {
   const args = process.argv.slice(2), command = args.shift() ?? 'status';
-  if (command === '--help' || command === 'help') { console.log('cliffwatch status [--json] [--config PATH]\ncliffwatch daemon [--once] [--config PATH]\ncliffwatch history [provider] [--json] [--config PATH]\ncliffwatch test-alert [--config PATH]\ncliffwatch dashboard [--config PATH]'); return; }
-  let path: string | undefined, json = false, once = false, provider: string | undefined;
+  if (command === '--help' || command === 'help') { console.log('cliffwatch status [--json] [--verbose] [--config PATH]\ncliffwatch sync-now [--config PATH]\ncliffwatch daemon [--once] [--config PATH]\ncliffwatch history [provider] [--json] [--config PATH]\ncliffwatch test-alert [--config PATH]\ncliffwatch dashboard [--config PATH]'); return; }
+  let path: string | undefined, json = false, once = false, verbose = false, provider: string | undefined;
   while (args.length) {
     const arg = args.shift();
     if (arg === '--json') json = true;
+    else if (arg === '--verbose') verbose = true;
     else if (arg === '--once') once = true;
     else if (arg === '--config' && args[0] && !args[0].startsWith('--')) path = args.shift();
     else if (command === 'history' && !provider && arg && !arg.startsWith('--')) provider = arg;
     else throw new Error('Invalid arguments. Run cliffwatch --help.');
   }
-  if (!['status', 'test-alert', 'daemon', 'history', 'dashboard'].includes(command) || (once && command !== 'daemon') || (provider && !['codex','openrouter'].includes(provider))) throw new Error('Invalid command or arguments. Run cliffwatch --help.');
+  if (!['status', 'sync-now', 'test-alert', 'daemon', 'history', 'dashboard'].includes(command) || (once && command !== 'daemon') || (verbose && command !== 'status') || (provider && !['codex','openrouter'].includes(provider))) throw new Error('Invalid command or arguments. Run cliffwatch --help.');
   const config = await loadConfig(path);
   if (command === 'dashboard') {
     const [major = 0, minor = 0] = process.versions.node.split('.').map(Number);
@@ -77,6 +79,7 @@ async function main() {
     return;
   }
   if (command === 'test-alert') { await testAlert(config); console.log('Test alert delivered.'); return; }
+  if (command === 'sync-now') { await runDaemon(config,true); console.log('Local store re-read is ready; refresh the dashboard.'); return; }
   if (command === 'daemon') { await runDaemon(config,once); return; }
   if (command === 'history') {
     const store = openExistingStore(config);
@@ -97,7 +100,13 @@ async function main() {
   let store: Store | undefined;
   try { store = openExistingStore(config); }
   catch { console.error('CliffWatch: history store unavailable; pace is unknown.'); }
-  try { console.log(json ? JSON.stringify(results, null, 2) : render(results, new Date(),store,config.intervalSeconds*1000)); }
+  try {
+    console.log(json ? JSON.stringify(results, null, 2) : render(results, new Date(),store,config.intervalSeconds*1000));
+    if (verbose && config.providers.codex.enabled && config.providers.codex.source === 'live') {
+      const discovery = lastCodexDiscovery();
+      console.log(`Codex executable: ${discovery.path ?? 'not found'}${discovery.source ? ` (${discovery.source})` : ''}${discovery.mtimeMs ? `; mtime ${new Date(discovery.mtimeMs).toISOString()}` : ''}`);
+    }
+  }
   finally { store?.close(); }
 }
 // The executable owns errors; adapters always report unknown rather than throwing.
