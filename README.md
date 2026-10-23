@@ -1,6 +1,6 @@
 # CliffWatch
 
-CliffWatch is a local-first quota watchdog for AI coding tools. A status scanner tells you where usage is now; CliffWatch also estimates when the remaining quota may run out and sends threshold alerts before that point. It currently monitors Codex CLI and OpenRouter, with a terminal interface, a background daemon and a local dashboard.
+CliffWatch is a local-first quota watchdog for AI coding tools. A status scanner tells you where usage is now; CliffWatch also estimates when the remaining quota may run out and sends threshold alerts before that point. It currently monitors Codex CLI and has an experimental OpenRouter adapter, with a terminal interface, a background daemon and a local dashboard.
 
 **Release state:** v0.1.0 is a tested local release candidate. It has not been published to npm. Public `npx cliffwatch status` will work only after publication; this README does not claim a live registry release.
 
@@ -43,7 +43,7 @@ channels:
 
 For another free alert destination, configure an ntfy topic URL, Telegram bot, Discord webhook or generic webhook as shown in the example. `cliffwatch test-alert` sends a **real** message to the first configured channel. The daemon retries failed delivery with backoff and then tries fallback channels in order. A crash after an external service accepts a message but before SQLite records success can produce a duplicate; webhook consumers should be idempotent.
 
-Available commands are `status [--json]`, `daemon [--once]`, `history [provider] [--json]`, `test-alert` and `dashboard`. Each accepts `--config PATH`. Use `daemon --once` for a single poll. The dashboard shows Overview, seven-day History and read-only Settings. It binds to `127.0.0.1`, rejects other Host values, and requires a same-origin request before sending a test alert. Dashboard settings never expose environment variable values.
+Available commands are `status [--json] [--verbose]`, `sync-now`, `daemon [--once]`, `history [provider] [--json]`, `test-alert` and `dashboard`. Each accepts `--config PATH`. `sync-now` runs one poll and persists it so the dashboard can re-read the latest snapshot. The dashboard shows Overview, seven-day History and read-only Settings. It binds to `127.0.0.1`, rejects other Host values, and requires a same-origin request before sending a test alert. Dashboard settings never expose environment variable values.
 
 ![CliffWatch dashboard overview and first-run guide](docs/screenshots/cliffwatch-overview-desktop.png)
 
@@ -59,7 +59,9 @@ These are projections from observed samples, not provider guarantees. Each horiz
 
 There is no telemetry, hosted account, paid API, inference call or provider-account mutation. Configured provider reads and opt-in notification delivery are the only network operations. Keys stay in local environment variables and are transmitted only to their intended provider or alert destination. The dashboard listens on IPv4 loopback only.
 
-The daemon records samples, health and alert state in SQLite. It warns at startup if the previous heartbeat is older than two probe intervals. The dashboard marks missing data, stale health or samples, expired resets and read failures `UNKNOWN` and hides the old percentage. The CLI follows the same fail-closed rule. Alerts fire on threshold crossings and use a unique key per provider/window/threshold/reset period to avoid repeated delivery during one period.
+The daemon records samples, health and alert state in SQLite. It warns at startup if the previous heartbeat is older than two probe intervals. Missing or invalid evidence becomes `UNKNOWN`. An otherwise valid sample older than two poll intervals stays visible but is gray, labeled `STALE`, and shows its age; it is never presented as current green data. The CLI follows the same fail-closed rule. Alerts fire on threshold crossings and use a unique key per provider/window/threshold/reset period to avoid repeated delivery during one period.
+
+**Honesty note:** an early build stored a version-hashed absolute Codex executable path. A Codex desktop update replaced that directory and monitoring became `UNKNOWN`. CliffWatch now resolves the configured command through `PATH`, scans known platform install roots on every poll batch, and uses an absolute configured path only as an explicit fallback. `status --verbose` prints the discovered path and modification time for diagnosis.
 
 Quota scope matters: OpenRouter key credit does not prove every request budget is healthy. Codex live quota timing can be inconsistent; the adapter rejects suspect resets rather than claiming health. File-mode Codex input preserves source timestamps and cannot become fresh just because it was reread. See [Codex adapter findings](docs/adapters/codex.md) and [OpenRouter adapter findings](docs/adapters/openrouter.md) for evidence and UNVERIFIED assumptions.
 
