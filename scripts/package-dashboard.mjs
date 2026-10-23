@@ -22,4 +22,7 @@ for (const name of ['sharp', '@img']) {
 }
 const staticSource = join(workspace, 'apps', 'dashboard', '.next', 'static');
 cpSync(staticSource, join(target, 'apps', 'dashboard', '.next', 'static'), { recursive: true });
+// Next standalone output does not copy public assets automatically.
+const publicSource = join(workspace, 'apps', 'dashboard', 'public');
+if (existsSync(publicSource)) cpSync(publicSource, join(target, 'apps', 'dashboard', 'public'), { recursive: true });
 console.log('Packaged local dashboard alongside CLI.');

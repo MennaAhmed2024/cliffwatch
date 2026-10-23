@@ -8,7 +8,7 @@ import { Nav } from '@/components/Nav';
 export const metadata: Metadata = {
   title: { default: 'CliffWatch', template: '%s · CliffWatch' },
   description: 'Know your AI limits before you hit them.',
-  icons: { icon: '/brand/cliffwatch-mark.png', apple: '/brand/cliffwatch-mark.png' },
+  icons: { icon: [{ url: '/icon.png', type: 'image/png' }], apple: '/icon.png' },
 };
 
 export default function Layout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -92,6 +92,10 @@ try {
   }
   if (!overview) throw new Error(`Packaged dashboard did not start.\n${serverOutput.slice(-2000)}`);
   if (overview.cards[0]?.state !== 'ok' || overview.cards[0]?.usedPct !== 42.5) throw new Error(`Package did not read the seeded SQLite: ${JSON.stringify(overview)}`);
+  const brandAsset = await fetch(`http://127.0.0.1:${port}/brand/cliffwatch-mark.png`);
+  if (!brandAsset.ok || !brandAsset.headers.get('content-type')?.startsWith('image/png')) throw new Error('Packaged dashboard brand asset is missing.');
+  const pricing = await fetch(`http://127.0.0.1:${port}/pricing`);
+  if (!pricing.ok || !(await pricing.text()).includes('Plans that grow with your AI workflow')) throw new Error('Packaged pricing page is missing.');
   const staleStore = new SqliteStore(databaseFile);
   staleStore.putHealth({ provider: 'codex', state: 'ok', observedAt: new Date(now.getTime() - 700000).toISOString() });
   staleStore.close();
