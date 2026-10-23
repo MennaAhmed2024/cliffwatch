@@ -20,6 +20,8 @@ npm exec --workspace=cliffwatch -- cliffwatch dashboard
 
 The dashboard opens at `http://127.0.0.1:3000` by default. For UI development, run `npm run build` and then `npm run dev`. To install the unreleased npm package locally, run `npm pack --workspace cliffwatch` and install the resulting tarball in a clean project. CI verifies that tarball on Windows and Linux with Node 20.
 
+Open **Add AI Tool** in the local dashboard to detect Codex, test a connection, inspect the first trusted quota reading, and save it. OpenRouter accepts its key in a password field and stores it in the Windows user environment without writing the value to YAML or returning it from the setup API. Claude is visible but disabled until its quota source is verified; CliffWatch does not pretend an unsupported adapter works.
+
 Codex must be installed and signed in for its live probe. OpenRouter needs an API key in the environment. Missing configuration uses defaults; unavailable credentials or suspect data produce `UNKNOWN`, not a guessed percentage. `status` exits 0 for unknown provider data. Invalid config, invalid arguments and a failed `test-alert` exit nonzero.
 
 ## Configuration
