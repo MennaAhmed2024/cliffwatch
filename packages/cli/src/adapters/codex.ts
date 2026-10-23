@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { open } from 'node:fs/promises';
 import { z } from 'zod';
+import { discoverCodex } from './codex-discovery.js';
 import { freshness, unknown, type Metric, type ProbeResult } from '../core/probe.js';
 const win = z.object({ used_percent: z.number().min(0).max(100), window_minutes: z.number().int().positive(), resets_at: z.number().int().positive() });
 const limits = z.object({ limit_id: z.string().min(1).max(96).regex(/^[A-Za-z0-9_.:-]+$/), primary: win.nullable(), secondary: win.nullable() });
@@ -95,7 +96,11 @@ export function parseLive(raw: unknown, now: Date): ProbeResult {
     return parseLimits(normalized, now.toISOString(), now, 0);
   } catch { return unknown('Codex live quota format is invalid or unavailable.'); }
 }
-export async function probeLive(command: string, timeoutMs: number): Promise<ProbeResult> {
-  try { return parseLive(await readLive(command, timeoutMs), new Date()); }
+export async function probeLive(command: string, timeoutMs: number, discover = discoverCodex, reader = readLive): Promise<ProbeResult> {
+  try {
+    const discovered = await discover(command);
+    if (!discovered.path) return unknown(discovered.reason ?? 'codex executable not found — run cliffwatch setup');
+    return parseLive(await reader(discovered.path, timeoutMs), new Date());
+  }
   catch (error) { return unknown(error instanceof Error ? error.message : 'Codex probe failed.'); }
 }

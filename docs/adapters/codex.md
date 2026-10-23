@@ -24,4 +24,4 @@ Use the provider reset instant. First-message anchoring and exact weekly start s
 
 ## Verdict
 
-Feasible with verified local historical evidence and a documented live protocol. Unattended fresh polling through App Server needs an integration test in M1. Local-log-only mode cannot promise fresh status when Codex is idle. No adapter implementation or live successful protocol fixture yet.
+Implemented with App Server live reads as the primary source and explicitly configured local JSONL as the fallback. The real live fixture verifies the protocol boundary and fail-closed handling of suspect timing. Local-log-only mode cannot promise fresh status when Codex is idle. Executable discovery checks PATH and known platform install roots on every poll batch so version-directory changes do not permanently break monitoring; unknown layouts still return UNKNOWN.
