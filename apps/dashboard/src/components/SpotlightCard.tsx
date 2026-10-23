@@ -321,4 +321,4 @@ const SpotlightCard = ({
   );
 };
 
-export default SpotlightCard;\n
+export default SpotlightCard;
