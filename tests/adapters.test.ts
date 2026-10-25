@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { describe, it, expect } from 'vitest';
 import { parseSession, parseLive, probeFile, probeLive } from '../packages/cli/src/adapters/codex.js';
 import { discoverCodex } from '../packages/cli/src/adapters/codex-discovery.js';
-import { mkdtemp, mkdir, rm, writeFile, utimes } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, rm, writeFile, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseOpenRouter, probeOpenRouter } from '../packages/cli/src/adapters/openrouter.js';
@@ -40,9 +40,9 @@ describe('real Codex fixture contract', () => {
     const executableName = process.platform === 'win32' ? 'codex.exe' : 'codex';
     const first = join(root, 'v1', executableName), second = join(root, 'v2', executableName);
     try {
-      await mkdir(join(root, 'v1')); await writeFile(first, 'candidate'); await utimes(first, new Date(1), new Date(1));
+      await mkdir(join(root, 'v1')); await writeFile(first, 'candidate'); await chmod(first, 0o755); await utimes(first, new Date(1), new Date(1));
       expect((await discoverCodex('codex', { env: { PATH: '' }, roots: [root] })).path).toBe(first);
-      await mkdir(join(root, 'v2')); await writeFile(second, 'candidate'); await utimes(second, new Date(), new Date());
+      await mkdir(join(root, 'v2')); await writeFile(second, 'candidate'); await chmod(second, 0o755); await utimes(second, new Date(), new Date());
       expect((await discoverCodex('codex', { env: { PATH: '' }, roots: [root] })).path).toBe(second);
       const reset = Math.floor(Date.now()/1000) + 60;
       const live = await probeLive('codex', 100, () => Promise.resolve({ path: second, source: 'scan' }), () => Promise.resolve({ rateLimitsByLimitId: { codex: { primary: { usedPercent: 10, windowDurationMins: 300, resetsAt: reset }, secondary: { usedPercent: 20, windowDurationMins: 10080, resetsAt: reset } } } }));
