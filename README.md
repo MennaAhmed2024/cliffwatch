@@ -1,10 +1,44 @@
 # CliffWatch
 
+[![CI](https://github.com/MennaAhmed2024/cliffwatch/actions/workflows/ci.yml/badge.svg)](https://github.com/MennaAhmed2024/cliffwatch/actions/workflows/ci.yml)
+
 CliffWatch is a local-first quota watchdog for AI coding tools. A status scanner tells you where usage is now; CliffWatch also estimates when the remaining quota may run out and sends threshold alerts before that point. It currently monitors Codex CLI and has an experimental OpenRouter adapter, with a terminal interface, a background daemon and a local dashboard.
 
 **Release state:** v0.1.0 is a tested local release candidate. It has not been published to npm. Public `npx cliffwatch status` will work only after publication; this README does not claim a live registry release.
 
 For a short, user-focused walkthrough, read the [CliffWatch User Guide](USER-GUIDE.md).
+
+## Current provider status
+
+| Provider | Status | Setup |
+| --- | --- | --- |
+| Codex CLI | Working | Install Codex, sign in, then use **Add AI Tool**. CliffWatch discovers versioned desktop installs automatically. |
+| OpenRouter | Experimental | Enter `OPENROUTER_API_KEY` through **Add AI Tool**. Authenticated response semantics still require real-fixture verification. |
+| Claude Code | Investigated next | Visible but disabled until a trustworthy quota source is verified. No guessed adapter is exposed. |
+
+## Windows quick start
+
+This checkout currently lives at `E:\CliffWatch`. After a restart, open two PowerShell windows.
+
+Dashboard:
+
+```powershell
+cd "E:\CliffWatch"
+node packages\cli\dist\cli.js dashboard
+```
+
+Continuous monitoring:
+
+```powershell
+cd "E:\CliffWatch"
+node packages\cli\dist\cli.js daemon
+```
+
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Use **Add AI Tool** to detect, test, preview the first trusted reading, and save a provider. Run a deliberate one-time refresh with:
+
+```powershell
+node packages\cli\dist\cli.js sync-now
+```
 
 ## Run from source
 
@@ -18,7 +52,7 @@ npm exec --workspace=cliffwatch -- cliffwatch daemon
 npm exec --workspace=cliffwatch -- cliffwatch dashboard
 ```
 
-The dashboard opens at `http://127.0.0.1:3000` by default. For UI development, run `npm run build` and then `npm run dev`. To install the unreleased npm package locally, run `npm pack --workspace cliffwatch` and install the resulting tarball in a clean project. CI verifies that tarball on Windows and Linux with Node 20.
+The dashboard opens at `http://127.0.0.1:3000` by default. For UI development, run `npm run build` and then `npm run dev`. To install the unreleased npm package locally, run `npm pack --workspace cliffwatch` and install the resulting tarball in a clean project. CI verifies that tarball on Windows and Ubuntu with Node 20.
 
 Open **Add AI Tool** in the local dashboard to detect Codex, test a connection, inspect the first trusted quota reading, and save it. OpenRouter accepts its key in a password field and stores it in the Windows user environment without writing the value to YAML or returning it from the setup API. Claude is visible but disabled until its quota source is verified; CliffWatch does not pretend an unsupported adapter works.
 
@@ -45,7 +79,7 @@ channels:
 
 For another free alert destination, configure an ntfy topic URL, Telegram bot, Discord webhook or generic webhook as shown in the example. `cliffwatch test-alert` sends a **real** message to the first configured channel. The daemon retries failed delivery with backoff and then tries fallback channels in order. A crash after an external service accepts a message but before SQLite records success can produce a duplicate; webhook consumers should be idempotent.
 
-Available commands are `status [--json] [--verbose]`, `sync-now`, `daemon [--once]`, `history [provider] [--json]`, `test-alert` and `dashboard`. Each accepts `--config PATH`. `sync-now` runs one poll and persists it so the dashboard can re-read the latest snapshot. The dashboard shows Overview, seven-day History and read-only Settings. It binds to `127.0.0.1`, rejects other Host values, and requires a same-origin request before sending a test alert. Dashboard settings never expose environment variable values.
+Available commands are `status [--json] [--verbose]`, `sync-now`, `daemon [--once]`, `history [provider] [--json]`, `test-alert` and `dashboard`. Each accepts `--config PATH`. `sync-now` runs one poll and persists it so the dashboard can re-read the latest snapshot. The dashboard shows Overview, Add AI Tool, seven-day History and Settings. It binds to `127.0.0.1`, rejects other Host values, and requires a same-origin request for connection tests, saves and test alerts. Dashboard responses never expose secret values.
 
 ![CliffWatch dashboard overview and first-run guide](docs/screenshots/cliffwatch-overview-desktop.png)
 
@@ -67,6 +101,20 @@ The daemon records samples, health and alert state in SQLite. It warns at startu
 
 Quota scope matters: OpenRouter key credit does not prove every request budget is healthy. Codex live quota timing can be inconsistent; the adapter rejects suspect resets rather than claiming health. File-mode Codex input preserves source timestamps and cannot become fresh just because it was reread. See [Codex adapter findings](docs/adapters/codex.md) and [OpenRouter adapter findings](docs/adapters/openrouter.md) for evidence and UNVERIFIED assumptions.
 
+## Architecture
+
+```text
+User → CLI / Local Dashboard
+     → Provider adapters → Codex App Server / OpenRouter API
+     → validation and freshness checks
+     → SQLite store → pacing and durable alert outbox
+     → desktop / ntfy / Telegram / Discord / webhook
+
+Dashboard → loopback Next.js routes → Store interface → SQLite
+```
+
+The dashboard never probes providers while rendering. It reads persisted snapshots through the same store interface as the CLI. A dashboard re-read and a live CLI probe can therefore represent different observation times; every card shows its sample age, and old valid samples are explicitly marked `STALE`.
+
 ## Verify and release
 
 ```sh
@@ -77,6 +125,6 @@ npm test
 npm run verify:package
 ```
 
-The [CI workflow](.github/workflows/ci.yml) runs those checks on Windows and Linux and tests the packed package under Node 20. [RELEASING.md](RELEASING.md) records the npm version and publication steps. This repository has no configured remote issue tracker yet; `UNKNOWN` points to local adapter documentation instead of a fabricated URL.
+The [CI workflow](.github/workflows/ci.yml) runs those checks on Windows and Ubuntu and tests the packed package under Node 20. The latest cross-platform run is [green on both operating systems](https://github.com/MennaAhmed2024/cliffwatch/actions/runs/40195151986). The POSIX discovery test marks temporary executables with executable permissions, matching the production `X_OK` check instead of relying on Windows-only behavior. [RELEASING.md](RELEASING.md) records the npm version and publication steps. This repository has no configured remote issue tracker yet; `UNKNOWN` points to local adapter documentation instead of a fabricated URL.
 
 Read the [M4 report](M4-REPORT.md), [architecture decisions](DECISIONS.md) and [MIT license](LICENSE) for the release status and accepted trade-offs.
