@@ -105,4 +105,5 @@ describe('daemon and historical pacing', () => {
     expect(view.lastSixHours?.burnPerHour).toBeCloseTo(5);
     expect(view.driver).toBe('last-6h');
   }));
+  it('queries complete indexed time ranges without mixing older samples',()=>withStore(store=>{const reset=new Date('2026-10-22T12:00:00Z');store.insertSample(metric(10,new Date('2026-10-01T00:00:00Z'),reset));store.insertSample(metric(20,new Date('2026-10-21T10:00:00Z'),reset));store.insertSample(metric(30,new Date('2026-10-21T11:00:00Z'),reset));expect(store.historySince('2026-10-21T00:00:00Z','codex')).toHaveLength(2);expect(store.historySince('invalid','codex')).toEqual([]);}));
 });

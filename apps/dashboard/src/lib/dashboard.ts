@@ -37,8 +37,9 @@ function sampleCard(sample: Sample, health: ProbeHealth | undefined, config: Con
   const stale = isStaleAge(ageMs, config.intervalSeconds);
   const reason=currentSnapshotReason({sampleObservedAt:sample.observedAt,sourceObservedAt:sample.sourceObservedAt,healthObservedAt:health?.observedAt,healthState:health?.state,healthReason:health?.reason,resetsAt:sample.resetsAt,usedPct:sample.usedPct,intervalSeconds:config.intervalSeconds,nowMs:now.getTime()});
   if (reason) return { ...base, reason, stale, ageMs, observedAt: sample.observedAt, usedPct:sample.usedPct, remainingPct:Number.isFinite(sample.usedPct)?100-sample.usedPct:undefined, resetsAt:sample.resetsAt };
-  const history = store.history(sample.provider, 10000).filter(s => s.bucket === sample.bucket && s.window === sample.window && s.scope === sample.scope && s.state === 'ok');
-  const pace = paceView(history.reverse(), now, config.intervalSeconds * 1000);
+  const since=new Date(now.getTime()-168*3600000).toISOString();
+  const history = store.historySince(since,sample.provider,100000).filter(s => s.bucket === sample.bucket && s.window === sample.window && s.scope === sample.scope && s.state === 'ok');
+  const pace = paceView(history, now, config.intervalSeconds * 1000);
   return { ...base, state: classify(sample, config), stale, ageMs, usedPct: sample.usedPct, remainingPct: 100 - sample.usedPct, usedAbsolute: sample.usedAbsolute, limitAbsolute: sample.limitAbsolute, observedAt: sample.observedAt, resetsAt: sample.resetsAt, pace };
 }
 
@@ -68,7 +69,7 @@ export async function getHistory(now = new Date()): Promise<History> {
     return withStore(config, { series: [], alerts: [] }, store => {
       const since = now.getTime() - 7 * 86400000;
       const groups = new Map<string, History['series'][number]>();
-      for (const sample of store.history(undefined, 10000).reverse()) {
+      for (const sample of store.historySince(new Date(since).toISOString(),undefined,100000)) {
         const observed = validTime(sample.observedAt);
         if (sample.state !== 'ok' || !Number.isFinite(observed) || observed < since || observed > now.getTime() || !Number.isFinite(sample.usedPct)) continue;
         const key = `${sample.provider}|${sample.bucket}|${sample.window}|${sample.scope}`;

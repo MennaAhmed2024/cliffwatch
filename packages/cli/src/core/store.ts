@@ -12,6 +12,7 @@ export interface Store {
   latestSample(provider: string, bucket: string, window: string, scope: string): Sample | undefined;
   latestSamples(): Sample[];
   history(provider?: string, limit?: number): Sample[];
+  historySince(since: string, provider?: string, limit?: number): Sample[];
   insertAlert(alert: Omit<Alert, 'id' | 'state' | 'channelIndex' | 'attempts' | 'nextAttemptAt' | 'createdAt' | 'deliveredAt' | 'lastError'>): boolean;
   alertExists(dedupeKey: string): boolean;
   pendingAlerts(now: Date, limit?: number): Alert[];
@@ -45,6 +46,7 @@ export class SqliteStore implements Store {
       observed_at TEXT NOT NULL, source_observed_at TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN ('ok','unknown')), reason TEXT
     );
     CREATE INDEX IF NOT EXISTS samples_lookup ON samples(provider,bucket,window,scope,id DESC);
+    CREATE INDEX IF NOT EXISTS samples_time_lookup ON samples(provider,observed_at,id);
     CREATE TABLE IF NOT EXISTS alerts (
       id INTEGER PRIMARY KEY, dedupe_key TEXT NOT NULL UNIQUE, provider TEXT NOT NULL, window TEXT NOT NULL,
       threshold REAL NOT NULL, period_epoch INTEGER NOT NULL, state TEXT NOT NULL CHECK(state IN ('pending','delivered')),
@@ -75,6 +77,12 @@ export class SqliteStore implements Store {
     const capped = Math.min(10000, Math.max(1, limit));
     const rows = provider ? this.db.prepare('SELECT * FROM samples WHERE provider=? ORDER BY id DESC LIMIT ?').all(provider, capped) : this.db.prepare('SELECT * FROM samples ORDER BY id DESC LIMIT ?').all(capped);
     return (rows as SampleRow[]).map(mapSample);
+  }
+  historySince(since:string,provider?:string,limit=10000):Sample[]{
+    if(!Number.isFinite(Date.parse(since)))return[];
+    const capped=Math.min(100000,Math.max(1,limit));
+    const rows=provider?this.db.prepare('SELECT * FROM samples WHERE provider=? AND observed_at>=? ORDER BY observed_at,id LIMIT ?').all(provider,since,capped):this.db.prepare('SELECT * FROM samples WHERE observed_at>=? ORDER BY observed_at,id LIMIT ?').all(since,capped);
+    return(rows as SampleRow[]).map(mapSample);
   }
   insertAlert(a: Omit<Alert, 'id' | 'state' | 'channelIndex' | 'attempts' | 'nextAttemptAt' | 'createdAt' | 'deliveredAt' | 'lastError'>): boolean {
     const now = new Date().toISOString();
