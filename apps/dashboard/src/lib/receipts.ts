@@ -5,10 +5,10 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import { discoverReceiptsCli,receiptsInvocation } from './receipts-command';
 
 const run=promisify(execFile);
 const databasePath=()=>process.env.RECEIPTS_DATA_FILE??join(homedir(),'.receipts','receipts.sqlite');
-const cliPath=()=>process.env.RECEIPTS_CLI_PATH??join(homedir(),'Documents','Default Project','receipts','dist','cli.js');
 const bounds=(now=new Date())=>{const year=now.getUTCFullYear(),month=now.getUTCMonth();return{label:`${year}-${String(month+1).padStart(2,'0')}`,start:new Date(Date.UTC(year,month,1)).toISOString(),end:new Date(Date.UTC(year,month+1,1)).toISOString()};};
 
 export type ReceiptLink={sessionId:string;confidence:'tagged'|'likely';share:number;basis:string;commitSha?:string;work:string};
@@ -38,9 +38,10 @@ function latestRepoPath():string{
   return process.cwd();
 }
 export async function runReceiptsAction(action:'scan'|'dismiss',eventId?:string):Promise<ReceiptsSnapshot>{
-  const cli=cliPath();if(!existsSync(cli))return{...getReceiptsSnapshot(),error:'Receipts CLI is unavailable. Build it or configure RECEIPTS_CLI_PATH.'};
-  const args=action==='scan'?[cli,'scan','--repo',latestRepoPath()]:[cli,'dismiss',eventId??''];
+  const cli=discoverReceiptsCli();if(!cli)return{...getReceiptsSnapshot(),error:'Receipts CLI is unavailable. Install it on PATH or configure an absolute RECEIPTS_CLI_PATH.'};
+  const args=action==='scan'?['scan','--repo',latestRepoPath()]:['dismiss',eventId??''];
   if(action==='dismiss'&&!/^rework:[a-f0-9]{16}$/.test(eventId??''))return{...getReceiptsSnapshot(),error:'Invalid rework event id.'};
-  try{await run(process.execPath,args,{windowsHide:true,timeout:60_000,maxBuffer:2*1024*1024});return getReceiptsSnapshot();}
+  const invocation=receiptsInvocation(cli,args);if(!invocation)return{...getReceiptsSnapshot(),error:'Receipts CLI type is unsupported; configure its JavaScript or native executable path.'};
+  try{await run(invocation.file,invocation.args,{windowsHide:true,timeout:60_000,maxBuffer:2*1024*1024,...(invocation.env?{env:invocation.env}:{})});return getReceiptsSnapshot();}
   catch{return{...getReceiptsSnapshot(),error:'Receipts command failed. Check that its CLI build and repository path are available.'};}
 }

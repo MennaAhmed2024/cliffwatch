@@ -60,7 +60,7 @@ Codex must be installed and signed in for its live probe. OpenRouter needs an AP
 
 ### AI Receipts tab
 
-The **AI Receipts** tab reads the local `~/.receipts/receipts.sqlite` ledger and shows monthly tokens, Git attribution, and active rework signals. Use **Refresh scan** to update the ledger without opening a terminal, and dismiss false-positive rework events directly from the page. The optional environment variables `RECEIPTS_DATA_FILE`, `RECEIPTS_CLI_PATH`, and `RECEIPTS_REPO_PATH` override the local discovery paths.
+The **AI Receipts** tab reads the local `~/.receipts/receipts.sqlite` ledger and shows monthly tokens, Git attribution, and active rework signals. Use **Refresh scan** to update the ledger without opening a terminal, and dismiss false-positive rework events directly from the page. The action runner discovers an installed `receipts` command on `PATH`; alternatively, set `RECEIPTS_CLI_PATH` to an absolute JavaScript or native executable path. `RECEIPTS_DATA_FILE` and `RECEIPTS_REPO_PATH` override the ledger and scanned repository paths. CliffWatch does not contain a machine-specific Receipts project path.
 
 ## Configuration
 
