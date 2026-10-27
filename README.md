@@ -83,7 +83,7 @@ channels:
 
 For another free alert destination, configure an ntfy topic URL, Telegram bot, Discord webhook or generic webhook as shown in the example. `cliffwatch test-alert` sends a **real** message to the first configured channel. The daemon retries failed delivery with backoff and then tries fallback channels in order. A crash after an external service accepts a message but before SQLite records success can produce a duplicate; webhook consumers should be idempotent.
 
-Available commands are `status [--json] [--verbose]`, `sync-now`, `daemon [--once]`, `history [provider] [--json]`, `test-alert` and `dashboard`. Each accepts `--config PATH`. `sync-now` runs one poll and persists it so the dashboard can re-read the latest snapshot. The dashboard shows Overview, Add AI Tool, seven-day History and Settings. It binds to `127.0.0.1`, rejects other Host values, and requires a same-origin request for connection tests, saves and test alerts. Dashboard responses never expose secret values.
+Available commands are `status [--json] [--verbose]`, `sync-now`, `daemon [--once]`, `history [provider] [--json]`, `test-alert` and `dashboard`. Each accepts `--config PATH`. `sync-now` runs one poll and persists it so the dashboard can re-read the latest snapshot. The dashboard shows Overview, Add AI Tool, seven-day History, AI Receipts, Pricing and Settings. It binds to `127.0.0.1`, rejects other Host values, and requires a same-origin request for connection tests, saves and test alerts. Dashboard responses never expose secret values.
 
 ![CliffWatch dashboard overview and first-run guide](docs/screenshots/cliffwatch-overview-desktop.png)
 
