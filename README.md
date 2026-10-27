@@ -85,7 +85,7 @@ For another free alert destination, configure an ntfy topic URL, Telegram bot, D
 
 Available commands are `status [--json] [--verbose]`, `sync-now`, `daemon [--once]`, `history [provider] [--json]`, `test-alert` and `dashboard`. Each accepts `--config PATH`. `sync-now` runs one poll and persists it so the dashboard can re-read the latest snapshot. The dashboard shows Overview, Add AI Tool, seven-day History, AI Receipts, Pricing and Settings. It binds to `127.0.0.1`, rejects other Host values, and requires a same-origin request for connection tests, saves and test alerts. Dashboard responses never expose secret values.
 
-![CliffWatch dashboard overview and first-run guide](docs/screenshots/cliffwatch-overview-desktop.png)
+![CliffWatch dashboard overview with AI tools, receipts, pricing, history and settings](docs/screenshots/cliffwatch-overview-desktop-v2.png)
 
 The screenshot shows the safe first-run state before the first provider poll. The UI uses Lenis for smooth scrolling, GSAP for coordinated entrances and progress motion, and an adapted React Bits SpotlightCard for pointer-aware quota cards. Motion honors reduced-motion settings. The React Bits copyright and license text is included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
