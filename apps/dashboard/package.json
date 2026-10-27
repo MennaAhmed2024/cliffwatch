@@ -8,6 +8,7 @@
     "build": "node ../../scripts/run-next.mjs build --webpack"
   },
   "dependencies": {
+    "better-sqlite3": "^11.10.0",
     "cliffwatch": "file:../../packages/cli",
     "next": "^16.4.2",
     "react": "^19.2.0",

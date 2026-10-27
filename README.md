@@ -58,6 +58,10 @@ Open **Add AI Tool** in the local dashboard to detect Codex, test a connection, 
 
 Codex must be installed and signed in for its live probe. OpenRouter needs an API key in the environment. Missing configuration uses defaults; unavailable credentials or suspect data produce `UNKNOWN`, not a guessed percentage. `status` exits 0 for unknown provider data. Invalid config, invalid arguments and a failed `test-alert` exit nonzero.
 
+### AI Receipts tab
+
+The **AI Receipts** tab reads the local `~/.receipts/receipts.sqlite` ledger and shows monthly tokens, Git attribution, and active rework signals. Use **Refresh scan** to update the ledger without opening a terminal, and dismiss false-positive rework events directly from the page. The optional environment variables `RECEIPTS_DATA_FILE`, `RECEIPTS_CLI_PATH`, and `RECEIPTS_REPO_PATH` override the local discovery paths.
+
 ## Configuration
 
 Copy [config.example.yaml](config.example.yaml) to `~/.cliffwatch/config.yaml`. Store secret **values** in environment variables; YAML contains only variable names. The default database is `~/.cliffwatch/cliffwatch.sqlite`. A relative `dataFile` is resolved beside the config file, so the daemon and dashboard read the same database.
