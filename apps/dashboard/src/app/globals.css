@@ -280,6 +280,9 @@ button { font: inherit; }
 .empty, .error-panel { border: 1px dashed #cbd3df; border-radius: 15px; padding: 28px; color: #7e899a; background: rgba(255,255,255,.75); }
 .error-panel { border-color: #e7c1c4; color: #b05259; background: #fff8f8; margin-bottom: 18px; }
 .event-panel { padding: 0; overflow: auto; }
+.alert-actions { display: flex; gap: 6px; white-space: nowrap; }
+.alert-actions button { border: 1px solid #d9e1ec; border-radius: 6px; padding: 5px 7px; background: #fff; color: #38557f; font-size: 9px; cursor: pointer; }
+.alert-actions button:disabled { opacity: .55; cursor: wait; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 11px; }
 th { color: #98a1b0; font-size: 9px; letter-spacing: .05em; font-weight: 650; }
 th, td { padding: 15px 20px; border-bottom: 1px solid #edf0f4; }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isLocalSameOrigin, parseReceiptsAction, readLocalJson } from '../apps/dashboard/src/lib/request.js';
+import { isLocalSameOrigin, parseAlertAction, parseReceiptsAction, readLocalJson } from '../apps/dashboard/src/lib/request.js';
 
 function request(host: string, origin?: string) {
   return new Request('http://127.0.0.1:3000/api/test-alert', { method: 'POST', headers: { host, ...(origin ? { origin } : {}) } });
@@ -18,4 +18,5 @@ describe('bounded local JSON requests',()=>{
   it('accepts valid local JSON',async()=>expect(await readLocalJson(post('{"action":"scan"}'))).toMatchObject({ok:true,value:{action:'scan'}}));
   it('rejects cross-origin, invalid content type, malformed and oversized bodies',async()=>{expect(await readLocalJson(post('{}',{origin:'http://evil.example'}))).toMatchObject({ok:false,status:403});expect(await readLocalJson(post('{}',{'content-type':'text/plain'}))).toMatchObject({ok:false,status:415});expect(await readLocalJson(post('{'))).toMatchObject({ok:false,status:400});expect(await readLocalJson(post('"'+ 'x'.repeat(9000)+'"'))).toMatchObject({ok:false,status:413});});
   it('accepts only strict scan and dismiss actions',()=>{expect(parseReceiptsAction({action:'scan'})).toEqual({action:'scan'});expect(parseReceiptsAction({action:'dismiss',eventId:'rework:0123456789abcdef'})).toEqual({action:'dismiss',eventId:'rework:0123456789abcdef'});expect(parseReceiptsAction({action:'dismiss',eventId:'../../bad'})).toBeUndefined();expect(parseReceiptsAction({action:'scan',extra:true})).toBeUndefined();});
+  it('accepts only bounded alert actions',()=>{expect(parseAlertAction({action:'acknowledge',alertId:1})).toEqual({action:'acknowledge',alertId:1});expect(parseAlertAction({action:'snooze',alertId:2,minutes:60})).toEqual({action:'snooze',alertId:2,minutes:60});expect(parseAlertAction({action:'snooze',alertId:2,minutes:999})).toBeUndefined();expect(parseAlertAction({action:'acknowledge',alertId:'1'})).toBeUndefined();});
 });

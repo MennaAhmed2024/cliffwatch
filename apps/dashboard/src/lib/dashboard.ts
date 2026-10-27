@@ -4,6 +4,7 @@ import { openExistingStore } from 'cliffwatch/daemon';
 import { paceView, type PaceView } from 'cliffwatch/pacing-history';
 import type { Alert, ProbeHealth, Sample, Store } from 'cliffwatch/store';
 import { currentSnapshotReason, isStaleAge, sampleAge } from './freshness';
+import { heartbeatState, type HeartbeatState } from './diagnostics';
 
 export type Card = {
   key: string; provider: string; bucket: string; window: string; scope: string;
@@ -14,6 +15,7 @@ export type Card = {
 export type Overview = { cards: Card[]; globalState: Card['state']; lastProbeAt?: string; heartbeat?: string; error?: string; thresholds: number[] };
 export type History = { series: { key: string; provider: string; bucket: string; window: string; scope: string; points: { at: string; usedPct: number }[] }[]; alerts: Alert[]; error?: string };
 export type SafeSettings = { intervalSeconds: number; timeoutMs: number; thresholds: number[]; providers: { name: string; enabled: boolean; detail: string }[]; channels: { type: string; envNames: string[] }[]; error?: string };
+export type Diagnostics={schemaVersion:1;generatedAt:string;runtime:{platform:string;node:string};localOnly:true;config:{readable:boolean;intervalSeconds?:number;retentionDays?:number;enabledProviders:string[];channelTypes:string[]};store:{available:boolean;integrity:'ok'|'failed'|'unavailable';heartbeat?:string;heartbeatState:HeartbeatState;latestMetricCount:number;latestSampleAt?:string;recentAlerts:{pending:number;delivered:number};providerHealth:{provider:string;state:'ok'|'unknown';reason?:string;observedAt:string}[]};errors:string[]};
 
 const providerNames = ['codex', 'openrouter'] as const;
 const validTime = (value: string | undefined): number => value ? Date.parse(value) : NaN;
@@ -90,6 +92,20 @@ export async function getSafeSettings(): Promise<SafeSettings> {
         { name: 'Codex', enabled: config.providers.codex.enabled, detail: `Source: ${config.providers.codex.source}` },
         { name: 'OpenRouter (experimental)', enabled: config.providers.openrouter.enabled, detail: `Key environment variable: ${config.providers.openrouter.keyEnv}; scope: ${config.providers.openrouter.scope}` },
       ],
-      channels: config.channels.map(channel => ({ type: channel.type, envNames: channel.type === 'telegram' ? [channel.botTokenEnv, channel.chatIdEnv] : channel.type === 'desktop' ? [] : [channel.urlEnv] })) };
+      channels: config.channels.map((channel:Config['channels'][number]) => ({ type: channel.type, envNames: channel.type === 'telegram' ? [channel.botTokenEnv, channel.chatIdEnv] : channel.type === 'desktop' ? [] : [channel.urlEnv] })) };
   } catch { return { intervalSeconds: 0, timeoutMs: 0, thresholds: [], providers: [], channels: [], error: 'Cannot read local configuration.' }; }
+}
+
+export async function getDiagnostics(now=new Date()):Promise<Diagnostics>{
+  const base:Diagnostics={schemaVersion:1,generatedAt:now.toISOString(),runtime:{platform:process.platform,node:process.version},localOnly:true,config:{readable:false,enabledProviders:[],channelTypes:[]},store:{available:false,integrity:'unavailable',heartbeatState:'missing',latestMetricCount:0,recentAlerts:{pending:0,delivered:0},providerHealth:[]},errors:[]};
+  try{
+    const config=await loadConfig(process.env.CLIFFWATCH_CONFIG_PATH);
+    base.config={readable:true,intervalSeconds:config.intervalSeconds,retentionDays:config.retentionDays,enabledProviders:providerNames.filter(name=>config.providers[name].enabled),channelTypes:config.channels.map((channel:Config['channels'][number])=>channel.type)};
+    return withStore(config,{...base,errors:['Local quota store is not available yet.']},store=>{
+      const heartbeat=store.getHeartbeat(),latest=store.latestSamples(),alerts=store.alertHistory(1000),health=store.latestHealth();
+      const latestSampleAt=latest.map(sample=>sample.observedAt).filter(value=>Number.isFinite(Date.parse(value))).sort().at(-1);
+      const integrity=store.integrityCheck();
+      return{...base,store:{available:true,integrity:integrity.ok?'ok':'failed',...(heartbeat?{heartbeat}:{}),heartbeatState:heartbeatState(heartbeat,config.intervalSeconds,now.getTime()),latestMetricCount:latest.length,...(latestSampleAt?{latestSampleAt}:{}),recentAlerts:{pending:alerts.filter(alert=>alert.state==='pending'&&!alert.acknowledgedAt).length,delivered:alerts.filter(alert=>alert.state==='delivered').length},providerHealth:health},errors:integrity.ok?[]:['SQLite integrity check failed.']};
+    });
+  }catch{return{...base,errors:['Local configuration could not be read.']};}
 }
