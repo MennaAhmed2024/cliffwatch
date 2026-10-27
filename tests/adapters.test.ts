@@ -1,12 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { describe, it, expect } from 'vitest';
-import { parseSession, parseLive, probeFile, probeLive } from '../packages/cli/src/adapters/codex.js';
+import { codexSpawn, parseSession, parseLive, probeFile, probeLive } from '../packages/cli/src/adapters/codex.js';
 import { discoverCodex } from '../packages/cli/src/adapters/codex-discovery.js';
 import { chmod, mkdtemp, mkdir, rm, writeFile, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseOpenRouter, probeOpenRouter } from '../packages/cli/src/adapters/openrouter.js';
 const fixture = await readFile(new URL('../packages/cli/src/fixtures/codex-real-sanitized.json', import.meta.url), 'utf8');
+describe('Codex executable invocation',()=>{
+  it('uses a restricted cmd wrapper only for safe Windows script paths',()=>{expect(codexSpawn('C:\\Tools\\codex.cmd')).toMatchObject({args:['/d','/s','/c',expect.stringContaining('codex.cmd')]});expect(codexSpawn('C:\\bad"&calc.cmd')).toBeUndefined();expect(codexSpawn('/usr/local/bin/codex')).toMatchObject({executable:'/usr/local/bin/codex'});});
+});
 describe('real Codex fixture contract', () => {
   const now = new Date('2026-10-16T12:39:03Z');
   it('preserves provider percentages and reset epochs', () => {

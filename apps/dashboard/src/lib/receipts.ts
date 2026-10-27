@@ -38,7 +38,7 @@ function latestRepoPath():string{
   return process.cwd();
 }
 export async function runReceiptsAction(action:'scan'|'dismiss',eventId?:string):Promise<ReceiptsSnapshot>{
-  const cli=cliPath();if(!existsSync(cli))return{...getReceiptsSnapshot(),error:`Receipts CLI is unavailable at ${cli}. Build the receipts project first.`};
+  const cli=cliPath();if(!existsSync(cli))return{...getReceiptsSnapshot(),error:'Receipts CLI is unavailable. Build it or configure RECEIPTS_CLI_PATH.'};
   const args=action==='scan'?[cli,'scan','--repo',latestRepoPath()]:[cli,'dismiss',eventId??''];
   if(action==='dismiss'&&!/^rework:[a-f0-9]{16}$/.test(eventId??''))return{...getReceiptsSnapshot(),error:'Invalid rework event id.'};
   try{await run(process.execPath,args,{windowsHide:true,timeout:60_000,maxBuffer:2*1024*1024});return getReceiptsSnapshot();}

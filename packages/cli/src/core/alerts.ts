@@ -2,7 +2,8 @@ import type { Metric } from './probe.js';
 import type { Sample, Store } from './store.js';
 
 export function crossingThresholds(previous: Sample | undefined, current: Sample, thresholds: readonly number[], maxGapMs: number): number[] {
-  if (!previous || previous.state !== 'ok' || previous.periodEpoch !== current.periodEpoch) return [];
+  if (!previous) { const critical=Math.max(...thresholds); return Number.isFinite(critical)&&current.usedPct>=critical&&current.usedPct<=100?[critical]:[]; }
+  if (previous.state !== 'ok' || previous.periodEpoch !== current.periodEpoch) return [];
   const gap = Date.parse(current.observedAt) - Date.parse(previous.observedAt);
   if (!Number.isFinite(gap) || gap <= 0 || gap > maxGapMs) return [];
   if (current.usedPct < previous.usedPct || current.usedPct > 100 || current.usedPct < 0) return [];

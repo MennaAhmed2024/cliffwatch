@@ -1,10 +1,9 @@
 import 'server-only';
 import { loadConfig, type Config } from 'cliffwatch/config';
 import { openExistingStore } from 'cliffwatch/daemon';
-import { freshness } from 'cliffwatch/probe';
 import { paceView, type PaceView } from 'cliffwatch/pacing-history';
 import type { Alert, ProbeHealth, Sample, Store } from 'cliffwatch/store';
-import { isStaleAge, sampleAge } from './freshness';
+import { currentSnapshotReason, isStaleAge, sampleAge } from './freshness';
 
 export type Card = {
   key: string; provider: string; bucket: string; window: string; scope: string;
@@ -36,13 +35,8 @@ function sampleCard(sample: Sample, health: ProbeHealth | undefined, config: Con
   const base: Card = { key: `${sample.provider}|${sample.bucket}|${sample.window}|${sample.scope}`, provider: sample.provider, bucket: sample.bucket, window: sample.window, scope: sample.scope, state: 'unknown' };
   const ageMs = sampleAge(sample.observedAt, now.getTime());
   const stale = isStaleAge(ageMs, config.intervalSeconds);
-  const reason = !health ? 'No provider health record yet.'
-    : health.state === 'unknown' ? health.reason ?? 'Provider reported unknown.'
-    : !freshness(sample.sourceObservedAt, now, Number.MAX_SAFE_INTEGER) || ageMs === undefined ? 'Quota sample timestamp is invalid.'
-    : sample.resetsAt && (!Number.isFinite(validTime(sample.resetsAt)) || validTime(sample.resetsAt) <= now.getTime()) ? 'Quota reset time is invalid or expired; waiting for a new sample.'
-    : !Number.isFinite(sample.usedPct) || sample.usedPct < 0 || sample.usedPct > 100 ? 'Quota sample is invalid.'
-    : undefined;
-  if (reason) return { ...base, reason, observedAt: sample.observedAt };
+  const reason=currentSnapshotReason({sampleObservedAt:sample.observedAt,sourceObservedAt:sample.sourceObservedAt,healthObservedAt:health?.observedAt,healthState:health?.state,healthReason:health?.reason,resetsAt:sample.resetsAt,usedPct:sample.usedPct,intervalSeconds:config.intervalSeconds,nowMs:now.getTime()});
+  if (reason) return { ...base, reason, stale, ageMs, observedAt: sample.observedAt, usedPct:sample.usedPct, remainingPct:Number.isFinite(sample.usedPct)?100-sample.usedPct:undefined, resetsAt:sample.resetsAt };
   const history = store.history(sample.provider, 10000).filter(s => s.bucket === sample.bucket && s.window === sample.window && s.scope === sample.scope && s.state === 'ok');
   const pace = paceView(history.reverse(), now, config.intervalSeconds * 1000);
   return { ...base, state: classify(sample, config), stale, ageMs, usedPct: sample.usedPct, remainingPct: 100 - sample.usedPct, usedAbsolute: sample.usedAbsolute, limitAbsolute: sample.limitAbsolute, observedAt: sample.observedAt, resetsAt: sample.resetsAt, pace };

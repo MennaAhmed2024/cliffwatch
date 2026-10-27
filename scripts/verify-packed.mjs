@@ -69,7 +69,7 @@ await new Promise(resolvePromise => listener.close(resolvePromise));
 
 const configFile = join(scratch, 'config.yaml');
 const databaseFile = join(scratch, 'quota.sqlite');
-await writeFile(configFile, `dataFile: quota.sqlite\ndashboardPort: ${port}\nintervalSeconds: 1\nproviders:\n  codex:\n    enabled: true\n  openrouter:\n    enabled: false\n`);
+await writeFile(configFile, `dataFile: quota.sqlite\ndashboardPort: ${port}\nintervalSeconds: 60\nproviders:\n  codex:\n    enabled: true\n  openrouter:\n    enabled: false\n`);
 const { SqliteStore } = await import(pathToFileURL(join(packageDir, 'dist', 'core', 'store.js')).href);
 const store = new SqliteStore(databaseFile);
 store.insertSample({ provider: 'codex', bucket: 'primary', window: '5h', scope: 'account', usedPct: 42.5, resetsAt: new Date(now.getTime() + 3600000).toISOString(), observedAt: now.toISOString(), sourceObservedAt: now.toISOString() });
@@ -96,9 +96,13 @@ try {
   if (!brandAsset.ok || !brandAsset.headers.get('content-type')?.startsWith('image/png')) throw new Error('Packaged dashboard brand asset is missing.');
   const pricing = await fetch(`http://127.0.0.1:${port}/pricing`);
   if (!pricing.ok || !(await pricing.text()).includes('Plans that grow with your AI workflow')) throw new Error('Packaged pricing page is missing.');
-  await new Promise(resolvePromise => setTimeout(resolvePromise, 2100));
+  const staleAt = new Date(Date.now() - 121000);
+  const staleStore = new SqliteStore(databaseFile);
+  staleStore.insertSample({ provider: 'codex', bucket: 'primary', window: '5h', scope: 'account', usedPct: 43, resetsAt: new Date(Date.now() + 3600000).toISOString(), observedAt: staleAt.toISOString(), sourceObservedAt: staleAt.toISOString() });
+  staleStore.putHealth({ provider: 'codex', state: 'ok', observedAt: staleAt.toISOString() });
+  staleStore.close();
   const stale = await (await fetch(`http://127.0.0.1:${port}/api/overview`)).json();
-  if (stale.cards[0]?.stale !== true || stale.cards[0]?.usedPct !== 42.5) throw new Error('Stale data was not retained and labeled transparently.');
+  if (stale.cards[0]?.state !== 'unknown' || stale.cards[0]?.stale !== true || stale.cards[0]?.usedPct !== 43) throw new Error('Stale data was not retained and labeled UNKNOWN transparently.');
   console.log(`Package verified on ${process.platform}, Node ${process.version}: npx-style cold status, license, dashboard, SQLite, stale data.`);
 } finally {
   if (child.exitCode === null) child.kill('SIGTERM');

@@ -42,9 +42,15 @@ export async function probeFile(path: string, now: Date, maxAge: number): Promis
   } catch { return unknown('Cannot read Codex source file (missing, locked or inaccessible).'); }
   finally { await file?.close().catch(() => undefined); }
 }
+export function codexSpawn(command:string):{executable:string;args:string[]}|undefined{
+  const fixedArgs=['app-server','-c','analytics.enabled=false','-c','otel.exporter="none"','--listen','stdio://'];
+  const script=/\.(cmd|bat)$/i.test(command);if(script&&(!/^[A-Za-z]:[\\/][A-Za-z0-9 _().\\/-]+\.(cmd|bat)$/i.test(command)))return undefined;
+  return script?{executable:process.env.ComSpec??'C:\\Windows\\System32\\cmd.exe',args:['/d','/s','/c',`""${command}" ${fixedArgs.map(value=>`"${value.replaceAll('"','\\"')}"`).join(' ')}"`]}:{executable:command,args:fixedArgs};
+}
 export function readLive(command: string, timeoutMs: number): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, ['app-server', '-c', 'analytics.enabled=false', '-c', 'otel.exporter="none"', '--listen', 'stdio://'], { stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true, shell: false });
+    const invocation=codexSpawn(command);if(!invocation)return reject(new Error('Codex script path is unsafe.'));
+    const child = spawn(invocation.executable, invocation.args, { stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true, shell: false });
     let buffer = '', done = false, initialized = false, bytes = 0;
     const finish = (error?: Error, result?: unknown) => {
       if (done) return;

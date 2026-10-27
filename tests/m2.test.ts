@@ -20,6 +20,7 @@ function metric(pct: number, at: Date, reset: Date, bucket = 'codex'): Metric {
   return {provider:'codex',bucket,window:'5h',scope:'account',usedPct:pct,resetsAt:reset.toISOString(),observedAt:at.toISOString(),sourceObservedAt:at.toISOString()};
 }
 describe('durable crossing alerts', () => {
+  it('first trusted critical sample emits once and remains deduplicated',()=>withStore(store=>{const t=new Date(),reset=new Date(t.getTime()+3600000);recordMetric(store,metric(96,t,reset),[70,85,95],600000);recordMetric(store,metric(97,new Date(t.getTime()+1000),reset),[70,85,95],600000);expect(store.alertHistory()).toHaveLength(1);expect(store.alertHistory()[0]?.threshold).toBe(95);}));
   it('two polls above 70 produce exactly one durable alert, including after reopen', async () => withStore(async (store,path) => {
     const t = new Date(), reset = new Date(t.getTime()+2*3600000);
     recordMetric(store,metric(60,t,reset),[70,85,95],600000);
