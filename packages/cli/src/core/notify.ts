@@ -30,7 +30,7 @@ async function desktop(message: string, timeoutMs: number): Promise<void> {
     }
   } catch { throw new Error('Desktop notification failed; check graphical session/notification support.'); }
 }
-export async function sendMessage(channel: Channel, message: string, kind: 'test' | 'threshold', timeoutMs: number, env: NodeJS.ProcessEnv = process.env, request: typeof fetch = fetch): Promise<void> {
+export async function sendMessage(channel: Channel, message: string, kind: 'test' | 'threshold' | 'predictive', timeoutMs: number, env: NodeJS.ProcessEnv = process.env, request: typeof fetch = fetch): Promise<void> {
   if (channel.type === 'desktop') return desktop(message, timeoutMs);
   if (channel.type === 'webhook') return post(request, safeUrl(env[channel.urlEnv]), { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: `cliffwatch.${kind}`, message, at: new Date().toISOString() }) }, timeoutMs);
   if (channel.type === 'discord') return post(request, safeUrl(env[channel.urlEnv]), { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: message, allowed_mentions: { parse: [] } }) }, timeoutMs);
@@ -56,9 +56,15 @@ export async function deliverDueAlerts(store: Store, config: Config, now: Date, 
       store.markAlertFailure(alert.id,alert.channelIndex,alert.attempts+1,new Date(now.getTime()+300000).toISOString(),'No channel configured');
       continue;
     }
-    const message = `CliffWatch: ${alert.provider} ${alert.window} crossed ${alert.threshold}% used. Check status before the quota wall.`;
+    let message=`CliffWatch: ${alert.provider} ${alert.window} crossed ${alert.threshold}% used. Check status before the quota wall.`;
+    if(alert.kind==='predictive'){
+      let eta='soon',driver='observed pace';
+      try{const detail=JSON.parse(alert.detail ?? '') as {etaHours?:unknown;driver?:unknown};if(typeof detail.etaHours==='number'&&Number.isFinite(detail.etaHours))eta=`in about ${detail.etaHours} hours`;if(detail.driver==='7-day'||detail.driver==='last-6h')driver=detail.driver;}
+      catch{/* Legacy or malformed detail stays deliberately generic. */}
+      message=`CliffWatch: ${alert.provider} ${alert.window} may exhaust ${eta} at the ${driver} pace, before its reset. Projection, not a provider guarantee.`;
+    }
     try {
-      await sendMessage(channel,message,'threshold',config.timeoutMs,process.env,request);
+      await sendMessage(channel,message,alert.kind,config.timeoutMs,process.env,request);
       store.markAlertDelivered(alert.id,new Date().toISOString());
     } catch {
       const attempts = alert.attempts+1;

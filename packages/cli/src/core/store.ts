@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import type { Metric } from './probe.js';
 
 export type Sample = Metric & { id: number; periodEpoch: number; state: 'ok' | 'unknown'; reason?: string };
-export type Alert = { id: number; dedupeKey: string; provider: string; window: string; threshold: number; periodEpoch: number; state: 'pending' | 'delivered'; channelIndex: number; attempts: number; nextAttemptAt: string; createdAt: string; deliveredAt?: string; lastError?: string };
+export type Alert = { id: number; dedupeKey: string; provider: string; window: string; threshold: number; periodEpoch: number; kind: 'threshold' | 'predictive'; detail?: string; state: 'pending' | 'delivered'; channelIndex: number; attempts: number; nextAttemptAt: string; createdAt: string; deliveredAt?: string; lastError?: string };
 export type ProbeHealth = { provider: string; state: 'ok' | 'unknown'; reason?: string; observedAt: string };
 export interface Store {
   insertSample(metric: Metric): number;
@@ -29,9 +29,9 @@ export interface Store {
 }
 
 type SampleRow = { id: number; provider: string; bucket: string; window: string; scope: string; period_epoch: number; used_pct: number | null; used_absolute: number | null; limit_absolute: number | null; resets_at: string | null; observed_at: string; source_observed_at: string; state: 'ok' | 'unknown'; reason: string | null };
-type AlertRow = { id: number; dedupe_key: string; provider: string; window: string; threshold: number; period_epoch: number; state: 'pending' | 'delivered'; channel_index: number; attempts: number; next_attempt_at: string; created_at: string; delivered_at: string | null; last_error: string | null };
+type AlertRow = { id: number; dedupe_key: string; provider: string; window: string; threshold: number; period_epoch: number; kind: 'threshold' | 'predictive'; detail: string | null; state: 'pending' | 'delivered'; channel_index: number; attempts: number; next_attempt_at: string; created_at: string; delivered_at: string | null; last_error: string | null };
 const mapSample = (r: SampleRow): Sample => ({ id: r.id, periodEpoch: r.period_epoch, provider: r.provider, bucket: r.bucket, window: r.window, scope: r.scope, usedPct: r.used_pct ?? NaN, ...(r.used_absolute !== null ? { usedAbsolute: r.used_absolute } : {}), ...(r.limit_absolute !== null ? { limitAbsolute: r.limit_absolute } : {}), ...(r.resets_at ? { resetsAt: r.resets_at } : {}), observedAt: r.observed_at, sourceObservedAt: r.source_observed_at, state: r.state, ...(r.reason ? { reason: r.reason } : {}) });
-const mapAlert = (r: AlertRow): Alert => ({ id: r.id, dedupeKey: r.dedupe_key, provider: r.provider, window: r.window, threshold: r.threshold, periodEpoch: r.period_epoch, state: r.state, channelIndex: r.channel_index, attempts: r.attempts, nextAttemptAt: r.next_attempt_at, createdAt: r.created_at, ...(r.delivered_at ? { deliveredAt: r.delivered_at } : {}), ...(r.last_error ? { lastError: r.last_error } : {}) });
+const mapAlert = (r: AlertRow): Alert => ({ id: r.id, dedupeKey: r.dedupe_key, provider: r.provider, window: r.window, threshold: r.threshold, periodEpoch: r.period_epoch, kind:r.kind ?? 'threshold', ...(r.detail ? {detail:r.detail}:{}), state: r.state, channelIndex: r.channel_index, attempts: r.attempts, nextAttemptAt: r.next_attempt_at, createdAt: r.created_at, ...(r.delivered_at ? { deliveredAt: r.delivered_at } : {}), ...(r.last_error ? { lastError: r.last_error } : {}) });
 
 export class SqliteStore implements Store {
   private db: Database.Database;
@@ -56,6 +56,9 @@ export class SqliteStore implements Store {
     CREATE INDEX IF NOT EXISTS alerts_pending ON alerts(state,next_attempt_at);
     CREATE TABLE IF NOT EXISTS health (provider TEXT PRIMARY KEY, state TEXT NOT NULL, reason TEXT, observed_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
+    const alertColumns=new Set((this.db.pragma('table_info(alerts)') as {name:string}[]).map(column=>column.name));
+    if(!alertColumns.has('kind'))this.db.exec("ALTER TABLE alerts ADD COLUMN kind TEXT NOT NULL DEFAULT 'threshold'");
+    if(!alertColumns.has('detail'))this.db.exec('ALTER TABLE alerts ADD COLUMN detail TEXT');
   }
   insertSample(m: Metric): number {
     const previous = this.latestSample(m.provider,m.bucket,m.window,m.scope);
@@ -86,7 +89,7 @@ export class SqliteStore implements Store {
   }
   insertAlert(a: Omit<Alert, 'id' | 'state' | 'channelIndex' | 'attempts' | 'nextAttemptAt' | 'createdAt' | 'deliveredAt' | 'lastError'>): boolean {
     const now = new Date().toISOString();
-    return this.db.prepare(`INSERT OR IGNORE INTO alerts(dedupe_key,provider,window,threshold,period_epoch,state,next_attempt_at,created_at) VALUES(?,?,?,?,?,'pending',?,?)`).run(a.dedupeKey,a.provider,a.window,a.threshold,a.periodEpoch,now,now).changes === 1;
+    return this.db.prepare(`INSERT OR IGNORE INTO alerts(dedupe_key,provider,window,threshold,period_epoch,kind,detail,state,next_attempt_at,created_at) VALUES(?,?,?,?,?,?,?,'pending',?,?)`).run(a.dedupeKey,a.provider,a.window,a.threshold,a.periodEpoch,a.kind,a.detail ?? null,now,now).changes === 1;
   }
   alertExists(key: string): boolean { return Boolean(this.db.prepare('SELECT 1 FROM alerts WHERE dedupe_key=?').get(key)); }
   pendingAlerts(now: Date, limit = 100): Alert[] { return (this.db.prepare("SELECT * FROM alerts WHERE state='pending' AND next_attempt_at<=? ORDER BY id LIMIT ?").all(now.toISOString(),Math.min(1000,Math.max(1,limit))) as AlertRow[]).map(mapAlert); }

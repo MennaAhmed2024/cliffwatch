@@ -34,7 +34,7 @@ export async function pollOnce(config: Config, store: Store, now = new Date(), p
       continue;
     }
     backoff.delete(entry.provider);
-    try { store.transaction(() => { for (const metric of entry.result.metrics) recordMetric(store,metric,config.thresholds,config.intervalSeconds*2000); }); }
+    try { store.transaction(() => { for (const metric of entry.result.metrics) recordMetric(store,metric,config.thresholds,config.intervalSeconds*2000,config.predictiveAlerts); }); }
     catch { entry.result = unknown('Cannot persist quota sample.'); store.putHealth({provider:entry.provider,state:'unknown',reason:entry.result.reason,observedAt}); log(`CliffWatch ${entry.provider}: UNKNOWN — cannot persist quota sample.`); }
   }
   try { await deliverDueAlerts(store,config,new Date(),fetch,log); }

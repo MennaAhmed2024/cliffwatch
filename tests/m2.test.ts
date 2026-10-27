@@ -59,6 +59,21 @@ describe('durable crossing alerts', () => {
     expect(store.alertHistory()).toHaveLength(2);
   }));
 });
+describe('predictive alerts',()=>{
+  it('emits one evidence-backed exhaustion warning per reset period',()=>withStore(store=>{
+    const start=new Date('2026-10-21T00:00:00Z'),reset=new Date('2026-10-22T00:00:00Z');
+    for(let hour=0;hour<=6;hour++)recordMetric(store,metric(10+hour*10,new Date(start.getTime()+hour*3600000),reset),[95],2*3600000,{enabled:true,leadTimeHours:24});
+    const predictions=store.alertHistory().filter(alert=>alert.kind==='predictive');
+    expect(predictions).toHaveLength(1);
+    expect(JSON.parse(predictions[0]!.detail!)).toMatchObject({driver:'last-6h',leadTimeHours:24});
+  }));
+  it('does not predict from sparse history or exhaustion after reset',()=>withStore(store=>{
+    const start=new Date('2026-10-21T00:00:00Z'),earlyReset=new Date('2026-10-21T07:00:00Z');
+    recordMetric(store,metric(10,start,earlyReset),[95],2*3600000,{enabled:true,leadTimeHours:24});
+    recordMetric(store,metric(20,new Date(start.getTime()+6*3600000),earlyReset),[95],2*3600000,{enabled:true,leadTimeHours:24});
+    expect(store.alertHistory().filter(alert=>alert.kind==='predictive')).toHaveLength(0);
+  }));
+});
 describe('delivery outbox', () => {
   it('claims prevent concurrent send; failed channel retries then uses fallback', async () => withStore(async store => {
     const t = new Date(), reset = new Date(t.getTime()+3600000);

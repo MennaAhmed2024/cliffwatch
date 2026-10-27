@@ -5,6 +5,11 @@ dashboardPort: 3000
 # Optional: dataFile: /absolute/path/to/cliffwatch.sqlite
 # A relative dataFile is resolved beside this config file.
 thresholds: [70, 85, 95]
+# Predictive alerts require enough continuous history to estimate exhaustion.
+# They are opt-in so an upgrade never creates a new notification policy silently.
+predictiveAlerts:
+  enabled: false
+  leadTimeHours: 24
 providers:
   codex:
     enabled: true

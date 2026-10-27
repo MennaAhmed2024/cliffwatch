@@ -44,5 +44,6 @@ describe('transparent pacing', () => {
 });
 describe('config', () => {
   it('zero setup defaults', () => expect(parseConfig('').intervalSeconds).toBe(300));
+  it('keeps predictive notifications opt-in with bounded lead time',()=>{expect(parseConfig('').predictiveAlerts).toEqual({enabled:false,leadTimeHours:24});expect(parseConfig('predictiveAlerts:\n  enabled: true\n  leadTimeHours: 12').predictiveAlerts.enabled).toBe(true);});
   it.each(['timeoutMs: -1', 'thresholds: [70, 70]', 'providers:\n  codex:\n    source: file', 'secret: x', 'channels:\n  - type: webhook\n    urlEnv: https://secret', 'a: ['])('rejects invalid config without echoing content', text => expect(() => parseConfig(text)).toThrow('Invalid config:'));
 });

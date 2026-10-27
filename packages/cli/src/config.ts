@@ -11,6 +11,10 @@ const schema = z.object({
   dashboardPort: z.number().int().min(1024).max(65535).default(3000),
   dataFile: z.string().min(1).optional(),
   thresholds: z.array(z.number().min(0).max(100)).nonempty().default([70, 85, 95]),
+  predictiveAlerts: z.object({
+    enabled: z.boolean().default(false),
+    leadTimeHours: z.number().min(1).max(168).default(24),
+  }).strict().default({}),
   providers: z.object({
     codex: z.object({ enabled: z.boolean().default(true), source: z.enum(['live', 'file']).default('live'), command: z.string().min(1).default('codex'), file: z.string().optional() }).strict().default({}),
     openrouter: z.object({ enabled: z.boolean().default(false), keyEnv: envName.default('OPENROUTER_API_KEY'), scope: z.enum(['key', 'account']).default('key') }).strict().default({}),
