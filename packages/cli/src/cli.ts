@@ -11,6 +11,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { lastCodexDiscovery } from './adapters/codex-discovery.js';
+import { runServiceCommand, type ServiceCommand } from './service.js';
 
 const eta = (hours: number | null | undefined): string => hours === undefined ? 'unknown' : hours === null ? 'no finite ETA' : `${hours.toFixed(1)}h`;
 function paceFor(store: Store | undefined, provider: string, metric: ProbeResult['metrics'][number], now: Date, intervalMs: number): PaceView | undefined {
@@ -48,7 +49,7 @@ export function render(results: { provider: string; result: ProbeResult }[], now
 }
 async function main() {
   const args = process.argv.slice(2), command = args.shift() ?? 'status';
-  if (command === '--help' || command === 'help') { console.log('cliffwatch status [--json] [--verbose] [--config PATH]\ncliffwatch sync-now [--config PATH]\ncliffwatch daemon [--once] [--config PATH]\ncliffwatch history [provider] [--json] [--config PATH]\ncliffwatch test-alert [--config PATH]\ncliffwatch dashboard [--config PATH]'); return; }
+  if (command === '--help' || command === 'help') { console.log('cliffwatch status [--json] [--verbose] [--config PATH]\ncliffwatch sync-now [--config PATH]\ncliffwatch daemon [--once] [--config PATH]\ncliffwatch history [provider] [--json] [--config PATH]\ncliffwatch test-alert [--config PATH]\ncliffwatch dashboard [--config PATH]\ncliffwatch install-service [--config PATH]\ncliffwatch start-service\ncliffwatch stop-service\ncliffwatch service-status'); return; }
   let path: string | undefined, json = false, once = false, verbose = false, provider: string | undefined;
   while (args.length) {
     const arg = args.shift();
@@ -59,7 +60,13 @@ async function main() {
     else if (command === 'history' && !provider && arg && !arg.startsWith('--')) provider = arg;
     else throw new Error('Invalid arguments. Run cliffwatch --help.');
   }
-  if (!['status', 'sync-now', 'test-alert', 'daemon', 'history', 'dashboard'].includes(command) || (once && command !== 'daemon') || (verbose && command !== 'status') || (provider && !['codex','openrouter'].includes(provider))) throw new Error('Invalid command or arguments. Run cliffwatch --help.');
+  const serviceCommands:ServiceCommand[]=['install-service','start-service','stop-service','service-status'];
+  if (!['status', 'sync-now', 'test-alert', 'daemon', 'history', 'dashboard',...serviceCommands].includes(command) || (once && command !== 'daemon') || (verbose && command !== 'status') || (provider && !['codex','openrouter'].includes(provider)) || (path&&serviceCommands.includes(command as ServiceCommand)&&command!=='install-service')) throw new Error('Invalid command or arguments. Run cliffwatch --help.');
+  if(serviceCommands.includes(command as ServiceCommand)){
+    if(command==='install-service')await loadConfig(path);
+    console.log(await runServiceCommand(command as ServiceCommand,fileURLToPath(import.meta.url),path));
+    return;
+  }
   const config = await loadConfig(path);
   if (command === 'dashboard') {
     const [major = 0, minor = 0] = process.versions.node.split('.').map(Number);
