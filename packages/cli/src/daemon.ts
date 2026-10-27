@@ -39,6 +39,8 @@ export async function pollOnce(config: Config, store: Store, now = new Date(), p
   }
   try { await deliverDueAlerts(store,config,new Date(),fetch,log); }
   catch { log('CliffWatch: alert outbox processing failed; pending alerts remain for retry.'); }
+  try{store.pruneSamples(new Date(now.getTime()-config.retentionDays*86400000).toISOString(),1000);}
+  catch{log('CliffWatch: sample retention cleanup failed; monitoring continues.');}
   store.setHeartbeat(new Date().toISOString());
   return results;
 }

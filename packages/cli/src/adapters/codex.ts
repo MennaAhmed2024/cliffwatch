@@ -88,7 +88,7 @@ export function readLive(command: string, timeoutMs: number): Promise<unknown> {
 }
 export function parseLive(raw: unknown, now: Date): ProbeResult {
   try {
-    const body = z.object({ rateLimitsByLimitId: z.record(z.unknown()).nullish(), rateLimits: z.unknown().optional() }).parse(raw);
+    const body = z.object({ rateLimitsByLimitId: z.record(z.string(),z.unknown()).nullish(), rateLimits: z.unknown().optional() }).parse(raw);
     const buckets = body.rateLimitsByLimitId ? Object.entries(body.rateLimitsByLimitId) : [['codex', body.rateLimits]];
     const normalized = buckets.map(([id, value]) => {
       const bucket = z.object({ limitId: z.string().nullish(), primary: z.unknown(), secondary: z.unknown() }).parse(value);

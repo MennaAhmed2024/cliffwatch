@@ -10,15 +10,16 @@ const schema = z.object({
   timeoutMs: z.number().int().min(100).max(60000).default(10000),
   dashboardPort: z.number().int().min(1024).max(65535).default(3000),
   dataFile: z.string().min(1).optional(),
+  retentionDays: z.number().int().min(7).max(3650).default(30),
   thresholds: z.array(z.number().min(0).max(100)).nonempty().default([70, 85, 95]),
   predictiveAlerts: z.object({
     enabled: z.boolean().default(false),
     leadTimeHours: z.number().min(1).max(168).default(24),
-  }).strict().default({}),
+  }).strict().default({enabled:false,leadTimeHours:24}),
   providers: z.object({
-    codex: z.object({ enabled: z.boolean().default(true), source: z.enum(['live', 'file']).default('live'), command: z.string().min(1).default('codex'), file: z.string().optional() }).strict().default({}),
-    openrouter: z.object({ enabled: z.boolean().default(false), keyEnv: envName.default('OPENROUTER_API_KEY'), scope: z.enum(['key', 'account']).default('key') }).strict().default({}),
-  }).strict().default({}),
+    codex: z.object({ enabled: z.boolean().default(true), source: z.enum(['live', 'file']).default('live'), command: z.string().min(1).default('codex'), file: z.string().optional() }).strict().default({enabled:true,source:'live',command:'codex'}),
+    openrouter: z.object({ enabled: z.boolean().default(false), keyEnv: envName.default('OPENROUTER_API_KEY'), scope: z.enum(['key', 'account']).default('key') }).strict().default({enabled:false,keyEnv:'OPENROUTER_API_KEY',scope:'key'}),
+  }).strict().default({codex:{enabled:true,source:'live',command:'codex'},openrouter:{enabled:false,keyEnv:'OPENROUTER_API_KEY',scope:'key'}}),
   channels: z.array(z.discriminatedUnion('type', [
     z.object({ type: z.literal('webhook'), urlEnv: envName }).strict(),
     z.object({ type: z.literal('discord'), urlEnv: envName }).strict(),
