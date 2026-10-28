@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { resolve } from 'node:path';
+import { win32 } from 'node:path';
 
 const exec=promisify(execFile);
 const taskName='CliffWatch';
@@ -13,7 +13,7 @@ function quotedPath(path:string):string{
 }
 
 export function serviceTaskCommand(nodePath:string,cliPath:string,configPath?:string):string{
-  const command=`${quotedPath(resolve(nodePath))} ${quotedPath(resolve(cliPath))} daemon${configPath?` --config ${quotedPath(resolve(configPath))}`:''}`;
+  const command=`${quotedPath(win32.resolve(nodePath))} ${quotedPath(win32.resolve(cliPath))} daemon${configPath?` --config ${quotedPath(win32.resolve(configPath))}`:''}`;
   if(command.length>260)throw new Error('Service command is too long for Windows Task Scheduler; use shorter installation/config paths.');
   return command;
 }
